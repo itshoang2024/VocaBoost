@@ -23,7 +23,7 @@ Required backend env groups:
 - Supabase keys and optional DB pool settings
 - JWT secrets
 - SMTP credentials
-- Google OAuth credentials
+- Google OAuth credentials if Google sign-in is enabled
 - Gemini API credentials
 
 ## Frontend Deployment
@@ -45,6 +45,7 @@ Required frontend env vars:
 
 - `FRONTEND_URL` must match the frontend deployment URL for CORS, email links, and OAuth redirects.
 - `GOOGLE_CALLBACK_URL` must match the backend deployment callback URL configured in Google Cloud.
+- If any `GOOGLE_*` OAuth variable is missing, the backend still boots, but Google OAuth routes redirect with `oauth_unconfigured`.
 - The frontend expects the backend API under `${VITE_API_BASE_URL}/api`.
 - Local runtime uses `backend/server.js`, but Vercel uses `backend/api/index.js`.
 

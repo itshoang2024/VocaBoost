@@ -35,6 +35,8 @@ Check:
 
 Also confirm that the Google Cloud OAuth app uses the same callback URL as `backend/src/config/passport.config.js`.
 
+If these `GOOGLE_*` variables are missing, the backend should still start, but Google OAuth routes redirect with `oauth_unconfigured`.
+
 ## Email Templates Work But Emails Do Not Send
 
 `backend/src/services/email.service.js` can compile templates even when SMTP init fails.

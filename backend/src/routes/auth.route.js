@@ -5,6 +5,18 @@ const passport = require('passport');
 const authValidators = require('../validators/auth.validator');
 const authController = require('../controllers/auth.controller');
 const authenticateMiddleware = require('../middlewares/authenticate.middleware');
+const ResponseUtils = require('../utils/response');
+const { isGoogleOAuthConfigured } = require('../config/passport.config');
+
+const googleOAuthUnavailable = (req, res) => {
+  if (process.env.FRONTEND_URL) {
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/login?error=oauth_unconfigured`
+    );
+  }
+
+  return ResponseUtils.error(res, 'Google OAuth is not configured', 503);
+};
 
 // Registration & Login & Logout
 authRouter.post('/register', authValidators.register, authController.register);
@@ -19,14 +31,19 @@ authRouter.post('/refresh-token', authController.refreshToken);
 // OAuth Routes
 authRouter.get(
   '/google',
-  passport.authenticate('google', {
-    scope: ['profile', 'email'],
-    session: false,
-    prompt: 'select_account', // Force account selection
-  })
+  isGoogleOAuthConfigured
+    ? passport.authenticate('google', {
+        scope: ['profile', 'email'],
+        session: false,
+        prompt: 'select_account', // Force account selection
+      })
+    : googleOAuthUnavailable
 );
 
-authRouter.get('/google/callback', authController.googleCallback);
+authRouter.get(
+  '/google/callback',
+  isGoogleOAuthConfigured ? authController.googleCallback : googleOAuthUnavailable
+);
 
 // Password Reset Flow
 authRouter.post(

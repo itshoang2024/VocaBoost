@@ -1,4 +1,6 @@
-require('dotenv').config();
+const path = require('path');
+
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 const logger = require('./src/utils/logger');
 const { scheduleCleanup } = require('./src/utils/tokenCleanup');
 const PORT = process.env.PORT || 3000;

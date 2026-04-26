@@ -40,7 +40,7 @@ Required groups:
 - Optional DB pooling: `SUPABASE_DB_URL` or `DATABASE_URL`
 - JWT: `JWT_SECRET`, `JWT_REFRESH_SECRET`, `JWT_EXPIRE`
 - Email: `SMTP_USER`, `SMTP_PASS`, `FROM_EMAIL`
-- Google OAuth: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL`
+- Google OAuth: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL` if Google sign-in is enabled
 - AI: `GEMINI_API_KEY`, `GEMINI_MODEL`
 
 ### Frontend
@@ -147,7 +147,7 @@ npm run lint
 ## Troubleshooting Shortlist
 
 - If CORS fails, check `FRONTEND_URL` and the allowed-origin list in `backend/src/middlewares/security.middleware.js`.
-- If Google OAuth fails, verify `GOOGLE_CALLBACK_URL` matches the provider configuration and deployed/frontend URL.
+- If Google OAuth fails, verify `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_CALLBACK_URL` are set and that the callback URL matches the provider configuration.
 - If email sending fails in development, the backend can still compile templates, but SMTP actions will not deliver without valid credentials.
 - If review or vocabulary data is missing, verify Supabase migrations and seed state.
 

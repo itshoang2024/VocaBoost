@@ -2,14 +2,17 @@ const winston = require('winston');
 const fs = require('fs');
 const path = require('path');
 
-// Chỉ tạo thư mục logs khi không ở production
 const isProduction = process.env.NODE_ENV === 'production';
-let logDir;
+const isServerless =
+  process.env.VERCEL === '1' || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+let logDir = path.join(__dirname, '../../logs');
+let enableFileLogging = !isProduction && !isServerless;
 
-if (!isProduction) {
-  logDir = path.join(__dirname, '../../logs');
-  if (!fs.existsSync(logDir)) {
-    fs.mkdirSync(logDir);
+if (enableFileLogging && !fs.existsSync(logDir)) {
+  try {
+    fs.mkdirSync(logDir, { recursive: true });
+  } catch (error) {
+    enableFileLogging = false;
   }
 }
 
@@ -29,10 +32,8 @@ const transports = [
   }),
 ];
 
-// Chỉ thêm file transports khi không ở production
-if (!isProduction) {
+if (enableFileLogging) {
   transports.push(
-    // File log cho error
     new winston.transports.File({
       filename: path.join(logDir, 'error.log'),
       level: 'error',
@@ -42,7 +43,6 @@ if (!isProduction) {
       ),
     }),
 
-    // File log cho tất cả các loại log
     new winston.transports.File({
       filename: path.join(logDir, 'combined.log'),
       format: winston.format.combine(
@@ -58,7 +58,7 @@ const logger = winston.createLogger({
   format: winston.format.combine(
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' })
   ),
-  transports: transports,
+  transports,
 });
 
 logger.http = (req, res, duration) => {
