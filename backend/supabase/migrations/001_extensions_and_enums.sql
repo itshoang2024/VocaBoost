@@ -5,7 +5,37 @@
 BEGIN;
 
 -- === EXTENSIONS ===
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_namespace
+    WHERE nspname = 'extensions'
+  ) THEN
+    EXECUTE 'CREATE SCHEMA extensions';
+  END IF;
+END
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_extension
+    WHERE extname = 'uuid-ossp'
+  ) THEN
+    EXECUTE 'CREATE EXTENSION "uuid-ossp" WITH SCHEMA extensions';
+  END IF;
+END
+$$;
+SET search_path = public, extensions;
+
+CREATE OR REPLACE FUNCTION public.uuid_generate_v4()
+RETURNS UUID
+LANGUAGE SQL
+AS $$
+  SELECT extensions.uuid_generate_v4();
+$$;
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
 -- === ENUM TYPES ===

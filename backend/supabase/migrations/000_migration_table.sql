@@ -13,3 +13,4 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 INSERT INTO schema_migrations (version, description) 
 VALUES ('000', 'Create migration tracking table')
 ON CONFLICT (version) DO NOTHING;
+SET search_path = public, extensions;

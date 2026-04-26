@@ -4,6 +4,8 @@
 
 BEGIN;
 
+SET search_path = public, extensions;
+
 -- Main users table
 CREATE TABLE IF NOT EXISTS public.users (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,

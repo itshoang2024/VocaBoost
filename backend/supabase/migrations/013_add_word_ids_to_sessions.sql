@@ -17,3 +17,4 @@ VALUES ('013', 'Add word_ids column to revision_sessions table')
 ON CONFLICT (version) DO NOTHING;
 
 COMMIT;
+SET search_path = public, extensions;

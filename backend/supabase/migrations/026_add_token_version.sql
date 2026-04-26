@@ -33,3 +33,4 @@ CREATE TRIGGER increment_token_version_on_password_change
   BEFORE UPDATE ON users
   FOR EACH ROW
   EXECUTE FUNCTION trigger_increment_token_version_on_password_change();
+SET search_path = public, extensions;

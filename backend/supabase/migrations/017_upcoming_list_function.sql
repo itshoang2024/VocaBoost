@@ -77,3 +77,4 @@ VALUES ('017', 'Create functions for upcoming review lists')
 ON CONFLICT (version) DO NOTHING;
 
 COMMIT;
+SET search_path = public, extensions;

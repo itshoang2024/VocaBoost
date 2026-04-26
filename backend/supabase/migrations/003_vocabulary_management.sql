@@ -6,7 +6,7 @@ BEGIN;
 
 -- Vocabulary lists
 CREATE TABLE IF NOT EXISTS public.vocab_lists (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
     creator_id UUID NOT NULL,
     title TEXT NOT NULL,
     description TEXT,
@@ -78,3 +78,4 @@ INSERT INTO schema_migrations (version, description)
 VALUES ('003', 'Create vocabulary management tables');
 
 COMMIT;
+SET search_path = public, extensions;

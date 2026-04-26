@@ -35,3 +35,4 @@ VALUES ('020', 'Add view_count and trigger for popular lists')
 ON CONFLICT (version) DO NOTHING;
 
 COMMIT;
+SET search_path = public, extensions;

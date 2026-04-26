@@ -42,3 +42,4 @@ CREATE INDEX IF NOT EXISTS idx_vocabulary_created_at
 
 CREATE INDEX IF NOT EXISTS idx_vocabulary_term 
     ON vocabulary(term);
+SET search_path = public, extensions;

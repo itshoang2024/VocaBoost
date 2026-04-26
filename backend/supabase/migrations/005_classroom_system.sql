@@ -84,3 +84,4 @@ INSERT INTO schema_migrations (version, description)
 VALUES ('005', 'Create classroom management system tables');
 
 COMMIT;
+SET search_path = public, extensions;

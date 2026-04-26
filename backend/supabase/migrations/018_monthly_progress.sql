@@ -68,3 +68,4 @@ VALUES ('018', 'Create monthly_user_stats table and update function for progress
 ON CONFLICT (version) DO NOTHING;
 
 COMMIT;
+SET search_path = public, extensions;

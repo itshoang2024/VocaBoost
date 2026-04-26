@@ -47,3 +47,4 @@ BEGIN
     OFFSET p_offset;
 END;
 $$ LANGUAGE plpgsql;
+SET search_path = public, extensions;

@@ -66,3 +66,4 @@ INSERT INTO schema_migrations (version, description)
 VALUES ('008', 'Add indexes and triggers');
 
 COMMIT;
+SET search_path = public, extensions;

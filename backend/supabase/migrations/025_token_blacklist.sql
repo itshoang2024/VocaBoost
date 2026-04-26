@@ -37,3 +37,4 @@ $$ LANGUAGE plpgsql;
 COMMENT ON TABLE token_blacklist IS 'Stores revoked JWT tokens to prevent reuse before expiry';
 COMMENT ON COLUMN token_blacklist.token_hash IS 'SHA256 hash of the token for security';
 COMMENT ON COLUMN token_blacklist.reason IS 'Reason for token revocation';
+SET search_path = public, extensions;

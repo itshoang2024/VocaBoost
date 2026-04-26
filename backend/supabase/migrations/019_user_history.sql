@@ -29,3 +29,4 @@ VALUES ('019', 'Create user_list_history table')
 ON CONFLICT (version) DO NOTHING;
 
 COMMIT;
+SET search_path = public, extensions;

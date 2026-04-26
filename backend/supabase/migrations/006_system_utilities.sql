@@ -59,3 +59,4 @@ INSERT INTO schema_migrations (version, description)
 VALUES ('006', 'Create system utilities tables');
 
 COMMIT;
+SET search_path = public, extensions;

@@ -46,3 +46,4 @@ BEGIN
     RETURN QUERY SELECT * FROM public.vocab_lists WHERE id = new_list_id;
 END;
 $$;
+SET search_path = public, extensions;

@@ -14,3 +14,4 @@ VALUES ('021', 'Add additional_notes and school_email to teacher_requests table'
 ON CONFLICT (version) DO NOTHING;
 
 COMMIT;
+SET search_path = public, extensions;

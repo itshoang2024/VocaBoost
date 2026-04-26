@@ -54,3 +54,4 @@ ON CONFLICT (version) DO UPDATE SET
     applied_at = NOW();
 
 COMMIT;
+SET search_path = public, extensions;

@@ -63,3 +63,4 @@ BEGIN
 END $$;
 
 COMMIT;
+SET search_path = public, extensions;

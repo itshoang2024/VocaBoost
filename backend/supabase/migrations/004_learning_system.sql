@@ -51,3 +51,4 @@ INSERT INTO schema_migrations (version, description)
 VALUES ('004', 'Create learning and revision system tables');
 
 COMMIT;
+SET search_path = public, extensions;

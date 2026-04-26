@@ -94,3 +94,4 @@ INSERT INTO schema_migrations (version, description)
 VALUES ('007', 'Add foreign key constraints');
 
 COMMIT;
+SET search_path = public, extensions;

@@ -17,3 +17,4 @@ VALUES ('014', 'Delete Handling')
 ON CONFLICT (version) DO NOTHING;
 
 COMMIT;
+SET search_path = public, extensions;

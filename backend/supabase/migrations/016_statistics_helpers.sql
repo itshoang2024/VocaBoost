@@ -53,3 +53,4 @@ VALUES ('016', 'Create helper function for statistics module')
 ON CONFLICT (version) DO NOTHING;
 
 COMMIT;
+SET search_path = public, extensions;
