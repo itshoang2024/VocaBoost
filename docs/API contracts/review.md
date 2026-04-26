@@ -1,307 +1,96 @@
 # Review API Contract
 
-<aside>
-🔗
+## Base Path
 
-- Base URL: `http://localhost:3000/api/review`
-- Authentication Headers (Cho các endpoint cần xác thực):
-  `Authorization: Bearer <jwt_token>`
+`/api/review`
 
-</aside>
+## Authentication
 
-# 1. **Get Lists with Due Words**
+All review routes require a bearer token.
 
-### Endpoint
+## Endpoints
 
-```
-GET /lists/due
-```
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/lists/due` | Get lists with due words |
+| GET | `/lists/upcoming` | Get lists with upcoming reviews |
+| GET | `/due` | Get all due words grouped by list |
+| GET | `/lists/:listId/due-words` | Get due words for one owned list |
+| GET | `/sessions/status` | Get the current active session, if any |
+| GET | `/sessions/:sessionId/batch-summary` | Get summary for the latest completed batch |
+| POST | `/sessions/:sessionId/resume` | Resume an existing session |
+| POST | `/sessions/start` | Start a review or practice session |
+| POST | `/sessions/:sessionId/submit` | Submit the result for a reviewed word |
+| POST | `/sessions/:sessionId/end` | End the session and get the final summary |
 
-### Response Success (200)
+## Request Notes
 
-```json
-{
-  "success": true,
-  "message": "Retrieved lists with due words.",
-  "data": {
-    "listsWithDueWords": [
-      {
-        "id": "list-uuid-A",
-        "title": "IELTS Academic Words - Unit 1",
-        "wordCount": 50,
-        "dueWordCount": 5,
-        "tags": ["ielts", "academic"]
-      },
-      {
-        "id": "list-uuid-B",
-        "title": "Advanced Business English",
-        "wordCount": 95,
-        "dueWordCount": 12,
-        "tags": ["business", "english"]
-      }
-    ]
-  },
-  "pagination": {
-    "currentPage": 1,
-    "totalPages": 2,
-    "totalItems": 15,
-    "limit": 10
-  }
-}
-```
-
-# 2. **Get Words Due for Revision**
-
-### Endpoint
-
-```
-GET /due
-```
-
-### Response Success (200)
+### `POST /sessions/start`
 
 ```json
 {
-  "success": true,
-  "message": "Retrieved all due words.",
-  "data": {
-    "dueByList": [
-      {
-        "listId": "list-uuid-A",
-        "listTitle": "IELTS Academic Words - Unit 1",
-        "dueWordCount": 5,
-        "dueWords": [
-          { "id": "word-uuid-1", "term": "Analyze" },
-          { "id": "word-uuid-3", "term": "Context" }
-        ]
-      },
-      {
-        "listId": "list-uuid-B",
-        "listTitle": "Advanced Business English",
-        "dueWordCount": 1,
-        "dueWords": [{ "id": "word-uuid-15", "term": "Eminent" }]
-      }
-    ],
-    "totalDue": 6
-  }
+  "listId": "uuid",
+  "sessionType": "flashcard",
+  "practiceMode": false
 }
 ```
 
-# 3. **Get Active Session Status**
+Allowed `sessionType` values:
 
-### Endpoint
+- `flashcard`
+- `fill_blank`
+- `word_association`
 
+### `POST /sessions/:sessionId/submit`
+
+```json
+{
+  "wordId": "uuid",
+  "result": "correct",
+  "responseTimeMs": 2500
+}
 ```
-GET /sessions/status
-```
 
-### Response Success (200)
+Allowed `result` values:
+
+- `correct`
+- `incorrect`
+
+## Response Notes
+
+### `GET /sessions/status`
 
 ```json
 {
   "success": true,
   "message": "Retrieved active session status.",
   "data": {
-    "activeSession": {
-      "sessionId": "session-uuid-123",
-      "sessionType": "flashcard",
-      "totalWords": 25,
-      "completedWords": 7,
-      "remainingWords": [
-        {
-          "id": "word-uuid-8",
-          "term": "Feasible",
-          "definition": "Possible to do easily or conveniently.",
-          "examples": [
-            /* ... */
-          ]
-        }
-        // ... other remaining words
-      ]
-    }
+    "activeSession": {}
   }
 }
 ```
 
-# 4. **Start a Revision Session**
+`activeSession` may be `null`.
 
-### Endpoint
+### `GET /sessions/:sessionId/batch-summary`
 
-```
-POST /sessions/start
-```
+Current implementation summarizes batches of 10 completed words and includes:
 
-### **Request Body**
+- `batchNumber`
+- `totalBatches`
+- `wordsInBatch`
+- `correctAnswers`
+- `accuracy`
+- `words`
+- `overallProgress`
 
-```json
-{
-  "listId": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
-  "sessionType": "flashcard"
-}
-```
+### `POST /sessions/:sessionId/end`
 
-### Response Success (201)
+Returns a final summary object plus `words` and `batchSummaries`.
 
-```json
-{
-  "success": true,
-  "message": "Session started successfully.",
-  "data": {
-    "session": {
-      "sessionId": "session-uuid-123",
-      "sessionType": "flashcard",
-      "totalWords": 25,
-      "words": [
-        {
-          "id": "word-uuid-1",
-          "term": "Analyze",
-          "definition": "To examine in detail the constitution or structure of something.",
-          "phonetics": "/ˈænəlaɪz/",
-          "imageUrl": "http://.../image.jpg",
-          "examples": [{ "example_sentence": "..." }],
-          "synonyms": ["examine", "inspect"]
-        }
-        // ... 24 other words, shuffled
-      ]
-    }
-  }
-}
-```
+## Important Current Behavior
 
-# 5. **Submit a Session Result**
-
-### Endpoint
-
-```
-POST /sessions/{sessionId}/submit
-```
-
-### **Request Body**
-
-```json
-{
-  "wordId": "word-uuid-1",
-  "result": "correct",
-  "responseTimeMs": 2500
-}
-```
-
-**Field Definitions:**
-- `wordId`: Required - The ID of the word being reviewed
-- `result`: Required - The result ("correct" or "incorrect")
-- `responseTimeMs`: Optional - Response time in milliseconds
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "message": "Result recorded successfully."
-}
-```
-
-# 6. **End a Revision Session (Get Summary)**
-
-### Endpoint
-
-```
-POST /sessions/{sessionId}/end
-```
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "message": "Session completed.",
-  "data": {
-    "summary": {
-      "sessionId": "session-uuid-123",
-      "totalWords": 25,
-      "correctAnswers": 22,
-      "incorrectAnswers": 3,
-      "accuracy": 88.0,
-      "completedAt": "2023-10-22T10:30:00.000Z"
-    }
-  }
-}
-```
-
-# Common Error Responses
-
-### Validation Error (400) - **Bad Request**
-
-```json
-{
-  "success": false,
-  "errors": [
-    {
-      "field": "sessionType",
-      "message": "sessionType is required and must be one of [flashcard, fill_blank, word_association]."
-    }
-  ]
-}
-```
-
-### **Unauthorized (401)**
-
-```json
-{
-  "success": false,
-  "error": "Unauthorized: Invalid or expired token."
-}
-```
-
-### **Forbidden (403)**
-
-```json
-{
-  "success": false,
-  "error": "Forbidden: You do not have permission to perform this action."
-}
-```
-
-### **Not Found (404)**
-
-```json
-{
-  "success": false,
-  "error": "Resource not found."
-}
-```
-
-### **Conflict (409)**
-
-```json
-{
-  "success": false,
-  "error": "Conflict: This session has already been completed."
-}
-```
-
-### **Rate Limit Exceeded (429)**
-
-```json
-{
-  "success": false,
-  "error": "Too many requests. Please try again later."
-}
-```
-
-### Server Error (500)
-
-```json
-{
-  "success": false,
-  "error": "Internal server error"
-}
-```
-
-### **Service Unavailable (503)**
-
-```json
-{
-  "success": false,
-  "error": "Service is temporarily unavailable. Please try again in a few minutes."
-}
-```
+- If the user already has a recent active session for the same list, starting a new one returns a conflict.
+- If the user has an older active session or one for a different list, the backend may auto-mark it `interrupted`.
+- If no words are due and `practiceMode` is false, the backend automatically starts a practice session using available list words.
+- `GET /lists/:listId/due-words` is owner-only; learners cannot use it to inspect other users' lists.

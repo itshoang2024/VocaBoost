@@ -1,97 +1,26 @@
-# Components Architecture
+# Frontend Source Map
 
-This folder contains all reusable React components organized by feature domain and functionality.
+This directory contains the React application source code.
 
-## 📁 Folder Structure
+## Main Areas
 
-### **Layout**
+- `main.jsx`: app bootstrap and router assembly
+- `AppProviders.jsx`: global provider composition
+- `routes/`: top-level route groups
+- `pages/`: page-level features
+- `components/`: reusable UI and domain components
+- `services/`: backend integration wrappers
+- `hooks/`: reusable client-side workflows
+- `constants/`: design tokens and shared constants
+- `scss/`: styling system
 
-Core page layout and navigation components:
+## Read This With
 
-- `Header.jsx` - Main application header with navigation
-- `Footer.jsx` - Application footer
-- `SideBar.jsx` - Main navigation sidebar
-- `NavBar.jsx` - Navigation bar component
-- `Logo.jsx` - Application logo component
+- `../../docs/frontend-architecture.md`
+- `../../docs/API contracts/README.md`
+- `../../AGENTS.md`
 
-### **Forms**
+## Change Guidance
 
-Input components and form elements:
-
-- `AccountPageInput.jsx` - Account page input fields
-- `CreateListInput.jsx` - Vocabulary list creation inputs
-- `WordInput.jsx` - Word input component
-- `SearchBar.jsx` - Search functionality component
-
-### **Vocabulary**
-
-Vocabulary-specific feature components:
-
-- `CarouselVocabSection.jsx` - Vocabulary carousel display
-- `WordCard.jsx` - Individual word card component
-- `WordsSection.jsx` - Words list section container
-- `ListMetadataForm.jsx` - List metadata form
-
-### **Classroom**
-
-Classroom management and functionality:
-
-- `ClassroomDropdownMenu.jsx` - Classroom dropdown menu
-- `ClassroomTitle.jsx` - Classroom title component
-- `SeeMoreSection.jsx` - See more section for classrooms
-- `TeacherClassroomMenuTab.jsx` - Teacher classroom menu tabs
-- `VocabularyListCard.jsx` - Vocabulary list card display
-
-### **Navigation**
-
-Menu and navigation specific components:
-
-- `LearnerSubMenu.jsx` - Learner navigation submenu
-- `DropdownMenu.jsx` - Generic dropdown menu component
-
-### **UI**
-
-Generic UI elements and components:
-
-- `ConfirmModal.jsx` - Confirmation modal dialog
-- `ToastNotification.jsx` - Toast notification component
-- `cursor/LoadingCursor.jsx` - Loading cursor component
-
-### **Providers**
-
-Context providers and global state management:
-
-- `ConfirmProvider.jsx` - Confirmation context provider
-- `ToastProvider.jsx` - Toast notification provider
-- `ErrorBoundary.jsx` - Error boundary component
-
-### **Reporting**
-
-Reporting and analytics components:
-
-- `Report.jsx` - Report component
-- `ReportTrigger.jsx` - Report trigger component
-
-### **Profile**
-
-User profile related components:
-
-- `ProfileComponents.jsx` - Profile-related components
-
-## 🔗 Usage
-
-All components are exported through the main `index.jsx` file for easy importing:
-
-```javascript
-// Import layout components
-import { Header, Footer, SideBar } from "components";
-
-// Import form components
-import { SearchBar, AccountPageInput } from "components";
-
-// Import providers
-import { useToast, useConfirm } from "components";
-
-// Import vocabulary components
-import { WordCard, WordsSection } from "components";
-```
+- route changes should be reflected in the frontend architecture doc if they affect navigation or deep-link expectations
+- API usage changes should stay aligned with the matching backend contract docs

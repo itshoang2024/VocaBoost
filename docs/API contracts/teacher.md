@@ -1,200 +1,86 @@
-# Teacher Verification API Contract
+# Teacher API Contract
 
-## Overview
+## Base Path
 
-The teacher verification system allows users to submit credentials for verification to upgrade their account from "learner" to "teacher" role. This gives them access to classroom management features.
+`/api/teacher`
 
-## Prerequisites
+## Authentication
 
-- User must be authenticated (valid JWT token)
-- User must have verified email address
-- Install multer dependency: `npm install multer`
+All teacher routes require a bearer token.
 
-<aside>
-🔗
+## Endpoints
 
-- Base URL: `http://localhost:3000/api/teacher`
-- Authentication Headers (Cho các endpoint cần xác thực):
-  `Authorization: Bearer <jwt_token>`
+| Method | Path | Purpose |
+| --- | --- | --- |
+| POST | `/verification/submit` | Submit or update a teacher verification request |
+| GET | `/verification/status` | Read the current user's verification status |
 
-</aside>
+## Request Notes
 
-## API Endpoints
+### `POST /verification/submit`
 
-## 1. Submit Teacher Verification Request
+Use `multipart/form-data`.
 
-Submit credentials for teacher account verification.
+Required text fields:
 
-**Endpoint:** `POST /verification/submit`
+- `fullName`
+- `institution`
+- `schoolEmail`
 
-**Headers:**
+Optional text field:
 
-```
-Authorization: Bearer <jwt_token>
-Content-Type: multipart/form-data
-```
+- `additionalNotes`
 
-**Form Data:**
+Required file field:
 
-- `fullName` (required): Teacher's full name
-- `institution` (required): School/Institution name
-- `schoolEmail` (required): School email address
-- `additionalNotes` (optional): Additional information
-- `credentials` (optional): Supporting document file (image/PDF/DOC)
+- `credentials`
 
-**File Requirements:**
+Upload constraints are enforced by multer and storage config:
 
-- Max size: 10MB
-- Allowed types: JPEG, PNG, PDF, DOC, DOCX
-- Field name must be: `credentials`
+- one file only
+- teacher-document MIME types only
+- max file size: 10 MB
 
-**Success Response (201 - New Request):**
+## Response Notes
 
-```json
-{
-  "success": true,
-  "message": "Your teacher verification request has been submitted successfully.",
-  "data": {
-    "requestId": "uuid",
-    "status": "pending",
-    "submittedAt": "2025-07-20T10:00:00Z",
-    "isUpdate": false
-  }
-}
-```
+### `POST /verification/submit`
 
-**Success Response (200 - Updated Request):**
+Returns:
 
-```json
-{
-  "success": true,
-  "message": "Your teacher verification request has been updated successfully.",
-  "data": {
-    "requestId": "uuid",
-    "status": "pending",
-    "submittedAt": "2025-07-20T10:00:00Z",
-    "isUpdate": true
-  }
-}
-```
+- `requestId`
+- `status`
+- `submittedAt`
+- `isUpdate`
 
-**Other Error Responses:**
+Status code:
 
-- 401: Unauthorized
-- 403: Email not verified
+- `201` for first submission
+- `200` for updating an existing request
 
-## 2. Get Verification Status
+### `GET /verification/status`
 
-Check the status of your teacher verification request.
+Returns fields such as:
 
-**Endpoint:** `GET /verification/status`
+- `status`
+- `submittedAt`
+- `institution`
+- `rejectionReason`
+- `message`
 
-**Headers:**
-
-```
-Authorization: Bearer <jwt_token>
-```
-
-**Success Response (200):**
+If no request exists, the route returns:
 
 ```json
 {
-  "success": true,
-  "message": "",
-  "data": {
-    "status": "pending|approved|rejected|not_submitted",
-    "submittedAt": "2025-07-20T10:00:00Z",
-    "institution": "University Name",
-    "rejectionReason": "Reason if rejected",
-    "message": "Status message"
-  }
+  "status": "not_submitted",
+  "message": "No verification request found"
 }
 ```
 
-## Admin Endpoints (Not Yet Implemented)
+## Important Current Behavior
 
-> **Note**: The following admin endpoints are planned but not yet implemented in the backend.
+Submitting verification currently:
 
-### Get Pending Requests (Admin Only)
-
-**Endpoint:** `GET /verification/requests/pending` _(Planned)_
-
-### Approve Request (Admin Only)
-
-**Endpoint:** `PUT /verification/requests/:requestId/approve` _(Planned)_
-
-### Reject Request (Admin Only)
-
-**Endpoint:** `PUT /verification/requests/:requestId/reject` _(Planned)_
-
----
-
-## Supabase Storage Setup
-
-### 1. Create Storage Bucket
-
-The storage service will automatically create a bucket named `teacher-credentials` with:
-
-- Private access (no public URLs)
-- 10MB file size limit
-- Restricted mime types
-
-### 2. RLS Policies (Optional)
-
-If you want to add Row Level Security policies:
-
-```sql
--- Allow users to upload their own files
-CREATE POLICY "Users can upload own credentials"
-ON storage.objects FOR INSERT
-TO authenticated
-WITH CHECK (bucket_id = 'teacher-credentials' AND auth.uid()::text = (storage.foldername(name))[1]);
-
--- Allow users to view their own files
-CREATE POLICY "Users can view own credentials"
-ON storage.objects FOR SELECT
-TO authenticated
-USING (bucket_id = 'teacher-credentials' AND auth.uid()::text = (storage.foldername(name))[1]);
-
--- Allow admins to view all files
-CREATE POLICY "Admins can view all credentials"
-ON storage.objects FOR SELECT
-TO authenticated
-USING (bucket_id = 'teacher-credentials' AND
-  EXISTS (
-    SELECT 1 FROM users
-    WHERE id = auth.uid() AND role = 'admin'
-  )
-);
-```
-
-## Email Notifications
-
-The system automatically sends email notifications:
-
-1. **To Admins**: When a new verification request is submitted
-2. **To Teachers**:
-   - When request is approved (with teacher dashboard access)
-   - When request is rejected (with reason and resubmission instructions)
-
-## Security Considerations
-
-1. Files are stored in a private bucket with signed URLs
-2. Only authenticated users with verified emails can submit requests
-3. File uploads are validated for type and size
-4. Admin role required for approval/rejection endpoints
-5. Users can only check their own verification status
-
-## Error Handling
-
-- File upload errors are handled gracefully
-- Invalid file types are rejected before upload
-- Expired tokens return appropriate error messages
-
-## Behavior Changes
-
-**New Logic for Existing Requests:**
-- If a teacher has already submitted a verification request, submitting again will **update** the existing request rather than returning an error
-- The existing request status will be reset to 'pending' and any rejection reason will be cleared
-- The institution and credentials file will be updated with the new information
-- This allows teachers to easily correct or update their verification requests
+- uploads the credential file to the `teacher-credentials` bucket
+- updates the user's display name if `fullName` is provided
+- sets the user's role to `teacher`
+- sets `account_status` to `pending_verification`

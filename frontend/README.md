@@ -1,12 +1,41 @@
-# React + Vite
+# Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The frontend is a React 19 + Vite single-page application for learner, teacher, and admin workflows in VocaBoost.
 
-Currently, two official plugins are available:
+## Entry Points
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- `src/main.jsx`: router creation and bootstrap
+- `src/AppProviders.jsx`: provider stack
+- `src/lib/api.js`: shared axios client
 
-## Expanding the ESLint configuration
+## Commands
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+npm run dev
+npm run build
+npm run preview
+npm run lint
+```
+
+## Important Folders
+
+- `src/routes/`: top-level route groups
+- `src/pages/`: page-level features
+- `src/components/`: reusable UI and workflow components
+- `src/services/`: backend integration layer
+- `src/hooks/`: reusable client-side workflows
+- `src/scss/`: design tokens and feature styles
+
+## Source Of Truth
+
+- route map: `src/routes/*.jsx`
+- API behavior: `src/lib/api.js` and `src/services/**`
+- environment variables: `.env.example`
+
+See:
+
+- `../docs/frontend-architecture.md`
+- `../docs/setup-and-run.md`
+- `../docs/API contracts/README.md`
+
+For coding-agent safety rules, also read `../AGENTS.md`.

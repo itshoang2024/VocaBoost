@@ -1,180 +1,83 @@
-# Authentication API Contract
+# Auth API Contract
 
-<aside>
-🔗
+## Base Path
 
-- Base URL: `http://localhost:3000/api/auth`
-- Authentication Headers (Cho các endpoint cần xác thực):
-  `Authorization: Bearer <jwt_token>`
+`/api/auth`
 
-</aside>
+This document is the current human-readable summary of the implemented auth routes.
 
-# 1. Register New Account
+## Authentication Notes
 
-### Endpoint
+- Most auth routes are public.
+- `GET /validate-token` requires a bearer token.
+- `POST /logout` expects the current access token in the `Authorization` header and may also receive a `refreshToken` in the JSON body.
 
-```
-POST /register
-```
+## Endpoints
 
-### Request Body
+| Method | Path | Purpose |
+| --- | --- | --- |
+| POST | `/register` | Register a new learner or teacher account |
+| POST | `/login` | Email/password sign-in |
+| POST | `/logout` | Blacklist current access and refresh tokens |
+| POST | `/refresh-token` | Exchange a refresh token for a new access token |
+| GET | `/google` | Start Google OAuth |
+| GET | `/google/callback` | Finish Google OAuth and redirect to frontend |
+| POST | `/forgot-password` | Send reset email if the account exists |
+| POST | `/reset-password` | Reset password using a reset token |
+| GET | `/verify-email/:token` | Verify email address and issue fresh tokens |
+| POST | `/resend-verification` | Resend the verification email |
+| POST | `/get-account-status` | Read account and verification status by email |
+| GET | `/validate-token` | Validate the current bearer token |
 
-```json
-{
-  "email": "user@example.com",
-  "password": "StrongPass123!",
-  "role": "learner" // or "teacher", "admin"
-}
-```
+## Request Notes
 
-### Validation Rules
-
-- **email**: Required, valid email format
-- **password**: Required, min 8 chars, must contain uppercase, lowercase and number
-- **role**: Optional, default “learner”
-
-### Response Success (201)
-
-```json
-{
-  "success": true,
-  "message": "Registration successful. Please check your email for verification.",
-  "data": {
-    "user": {
-      "id": "uuid-string",
-      "email": "user@example.com",
-      "role": "learner",
-      "emailVerified": false
-    }
-    "token": "eyJhbGciOiJIUzI1NiIs..."
-  }
-}
-
-```
-
-### Response Error (400/409)
-
-```json
-{
-  "success": false,
-  "message": "Email already registered" // or validation error message
-}
-```
-
-# 2. Login
-
-### Endpoint
-
-```
-POST /login
-```
-
-### Request Body
+### `POST /register`
 
 ```json
 {
   "email": "user@example.com",
-  "password": "StrongPass123!"
+  "password": "StrongPass123",
+  "role": "learner"
 }
 ```
 
-### Response Success (200)
+Current validator only allows `role` values `learner` and `teacher`.
+
+### `POST /login`
 
 ```json
 {
-  "success": true,
-  "message": "Login successful",
-  "data": {
-    "user": {
-      "id": "uuid-string",
-      "email": "user@example.com",
-      "role": "learner", // or "teacher", "admin"
-      "avatarUrl": null
-    },
-    "token": "eyJhbGciOiJIUzI1NiIs..."
-  }
+  "email": "user@example.com",
+  "password": "StrongPass123"
 }
 ```
 
-### Response Error (401)
+### `POST /logout`
 
 ```json
 {
-  "success": false,
-  "message": "Invalid credentials"
+  "refreshToken": "optional-refresh-token"
 }
 ```
 
-# 3. Google OAuth Login
-
-### Initiate OAuth
-
-```
-GET /google
-```
-
-Redirect user to this URL to start Google OAuth flow.
-
-### OAuth Callback
-
-```
-GET /google/callback
-```
-
-### Success Response
-
-Redirects to:
-
-```
-https://frontend.com/auth/success?token=<jwt_token>&isNewUser=<boolean>
-```
-
-### Error Response
-
-Redirects to:
-
-```
-https://frontend.com/login?error=<error_type>
-```
-
-Possible error types:
-
-- `oauth_failed`: OAuth authentication failed
-- `access_denied`: User denied access
-- `processing_failed`: Server processing error
-
-# 4. Logout
-
-### Endpoint
-
-```
-POST /logout
-```
-
-### Headers
-
-```
-Authorization: Bearer <jwt_token>
-```
-
-### Response Success (200)
+### `POST /refresh-token`
 
 ```json
 {
-  "success": true,
-  "message": "Logout successful"
+  "refreshToken": "required-refresh-token"
 }
 ```
 
-# 5. Forgot Password
+### `POST /reset-password`
 
-### Endpoint
-
+```json
+{
+  "token": "reset-token",
+  "newPassword": "NewStrongPass123"
+}
 ```
-POST /forgot-password
-```
 
-### Request Body
+### `POST /get-account-status`
 
 ```json
 {
@@ -182,211 +85,30 @@ POST /forgot-password
 }
 ```
 
-### Response Success (200)
+## Response Notes
 
-```json
-{
-  "success": true,
-  "message": "If your email is registered, you'll receive a password reset link shortly."
-}
+- register returns `user`, `token`, and `refreshToken`
+- login returns `user`, `token`, and `refreshToken`
+- verify-email returns verified `user`, `token`, and `refreshToken`
+- refresh-token returns `{ "token": "<new access token>" }`
+- validate-token returns the authenticated user context from middleware
+
+## OAuth Redirect Contract
+
+Successful Google OAuth redirects to:
+
+```text
+${FRONTEND_URL}/auth/success?token=<access>&refreshToken=<refresh>&isNewUser=<boolean>
 ```
 
-### Response Error (404)
+Error redirects use:
 
-```json
-{
-  "success": false,
-  "message": "Email not found"
-}
+```text
+${FRONTEND_URL}/login?error=<oauth_failed|access_denied|processing_failed>
 ```
 
-# 6. **Resend Verification**
+## Important Current Behavior
 
-### Endpoint
-
-```
-POST /resend-verification
-```
-
-### Request Body
-
-```json
-{
-  "email": "user@example.com"
-}
-```
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "message": "Verification email resent successfully. Please check your inbox"
-}
-```
-
-### Response Error (404)
-
-```json
-{
-  "success": false,
-  "message": "Email not found or already verified"
-}
-```
-
-# 7. **Reset Password**
-
-### Endpoint
-
-```
-POST /reset-password
-```
-
-### Request Body
-
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiIs...",
-  "newPassword": "NewSecurePass123"
-}
-```
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "message": "Password has been reset successfully. Please login with your new password."
-}
-```
-
-### Response Error (400/404)
-
-```json
-{
-  "success": false,
-  "message": "Invalid or expired token"
-}
-```
-
-```json
-{
-  "success": false,
-  "message": "Password must contain uppercase, lowercase and number"
-}
-```
-
-# 8. Verify Email
-
-### Endpoint
-
-```
-GET /verify-email/:token
-```
-
-### Parameters
-
-- **token**: Email verification token from email link
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "message": "Email verified successfully",
-  "data": {
-    "user": {
-      "id": "uuid-string",
-      "email": "user@example.com",
-      "role": "learner",
-      "emailVerified": true
-    },
-    "token": "eyJhbGciOiJIUzI1NiIs..."
-  }
-}
-```
-
-### Response Error (400/404)
-
-```json
-{
-  "success": false,
-  "message": "Invalid or expired verification token"
-}
-```
-
-# 9. Validate Token
-
-### Endpoint
-
-```
-GET /validate-token
-```
-
-### Headers
-
-```
-Authorization: Bearer <jwt_token>
-```
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "message": "Validate token successfully",
-  "data": {
-    "userId": "uuid-string",
-    "email": "user@example.com",
-    "role": "learner"
-  }
-}
-```
-
-### Response Error (401)
-
-```json
-{
-  "success": false,
-  "message": "Unauthorized"
-}
-```
-
-# 10. Get account status
-
-### Endpoint
-
-```
-POST /get-account-status
-```
-
-### Request Body
-
-```json
-{
-  "email": "user@example.com"
-}
-```
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "message": "Account status retrieved",
-  "data": {
-    "email": "user@example.com",
-    "emailVerified": true,
-    "accountStatus": "active"
-  }
-}
-```
-
-### Response Error (404)
-
-```json
-{
-  "success": false,
-  "message": "Email not found"
-}
-```
+- accounts created through Google without a local password cannot use password login
+- login blocks suspended and inactive accounts
+- logout blacklists tokens instead of just clearing them client-side

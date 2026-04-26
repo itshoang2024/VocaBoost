@@ -1,165 +1,88 @@
 # Classroom API Contract
 
-<aside>
-🔗
+## Base Path
 
-- Base URL: `http://localhost:3000/api/classroom`
-- Authentication Headers (Cho tất cả các endpoint): `Authorization: Bearer <jwt_token>`
-</aside>
+`/api/classroom`
 
-# 1. Create Classroom (Teacher)
+## Authentication And Access Model
 
-### Endpoint
+All classroom routes require a bearer token.
 
-```
-POST /create-classroom
-```
+Route access is determined by:
 
-### Request Body
+- `authenticateMiddleware`
+- `hasClassroomAccess`
+- `requireClassRole(...)`
 
-```json
-{
-  "name": "Lớp luyện thi IELTS 8.0",
-  "description": "Lớp học luyện thi IELTS dành cho học viên khá giỏi",
-  "classroom_status": "private",
-  "capacity_limit": 50
-}
-```
+Current classroom-scoped roles:
 
-### Validation Rules
+- `teacher`: classroom owner
+- `learner`: joined learner in the classroom
+- `admin`: global admin with classroom access
 
-- **name**: Required, string
-- **description**: Optional, max 1000 chars
-- **classroom_status**: Required, enum ("private" or "public")
-- **capacity_limit**: Required, integer 1-100, default 50
+## Endpoint Summary
 
-| Field              | Type                         | Required | Notes                 |
-| ------------------ | ---------------------------- | -------- | --------------------- |
-| `name`             | string                       | ✅       |                       |
-| `description`      | string                       | ❌       | max 1000 chars        |
-| `classroom_status` | enum (`private` \| `public`) | ✅       |                       |
-| `capacity_limit`   | integer                      | ✅       | 1 - 100, default = 50 |
+### Classroom creation and membership
 
-### Response Success (201)
+| Method | Path | Role | Purpose |
+| --- | --- | --- | --- |
+| POST | `/create-classroom` | active teacher | Create a classroom |
+| GET | `/my-classrooms` | active teacher | Get classrooms owned by the current teacher |
+| POST | `/join-request` | authenticated user | Join by join code |
+| GET | `/:classroomId/join-requests` | teacher | Get pending join requests |
+| POST | `/:classroomId/approve-request` | teacher | Approve one join request |
+| POST | `/:classroomId/reject-request` | teacher | Reject one join request |
+| POST | `/:classroomId/approve-all` | teacher | Approve all pending requests |
+| GET | `/:classroomId/learners` | teacher/admin/joined learner | Get joined learners |
+| POST | `/:classroomId/remove-learner` | teacher | Remove a learner |
+| DELETE | `/:classroomId` | teacher or admin | Soft-delete a classroom |
+| GET | `/:classroomId/search-learners` | classroom member | Search learners by status and display name |
+| GET | `/my-joined` | authenticated user | Get classrooms the current user has joined |
+| POST | `/:classroomId/leave` | learner | Leave a classroom |
 
-```json
-{
-  "success": true,
-  "message": "Classroom created successfully",
-  "data": {
-    "id": "0fa21d69-8d6b-4622-8b34-b2f64fffc0f5",
-    "teacher_id": "5d989deb-f811-479e-beb3-75e8d43db64c",
-    "name": "Lớp luyện thi IELTS 8.0",
-    "description": "Lớp học luyện thi IELTS dành cho học viên khá giỏi",
-    "join_code": "H262KE",
-    "learnercount": 0,
-    "assignmentcount": 0,
-    "classroom_status": "private",
-    "is_auto_approval_enabled": false,
-    "capacity_limit": 50,
-    "created_at": "2025-07-09T09:17:58.658838+00:00",
-    "updated_at": "2025-07-09T09:17:58.658838+00:00"
-  }
-}
-```
+### Invitations
 
-### Response Error
+| Method | Path | Role | Purpose |
+| --- | --- | --- | --- |
+| POST | `/:classroomId/invitation` | teacher | Invite a learner by email |
+| POST | `/accept-invitation` | authenticated user | Accept an invitation token |
+| DELETE | `/:classroomId/invitation` | teacher | Cancel an invitation |
+| GET | `/:classroomId/invitations` | teacher | List classroom invitations |
 
-### 🚫 Forbidden (Not teacher: 403)
+### Assignments
 
-```json
-{
-  "success": false,
-  "message": "Insufficient permissions"
-}
-```
+| Method | Path | Role | Purpose |
+| --- | --- | --- | --- |
+| POST | `/:classroomId/assignment` | teacher | Create an assignment |
+| GET | `/:classroomId/assignments` | teacher | List classroom assignments |
+| GET | `/:classroomId/assignments/to-review` | learner | Get learner assignments to review |
+| GET | `/:classroomId/assignments/reviewed` | learner | Get completed learner assignments |
+| GET | `/:classroomId/assignments/overdue` | learner | Get overdue learner assignments |
+| GET | `/:classroomId/:assignmentId` | teacher | Get assignment details |
+| DELETE | `/:classroomId/:assignmentId` | teacher | Delete an assignment |
+| GET | `/:classroomId/assignment/:assignmentId/vocab-list/:subListId` | learner | Get one assignment sub-vocabulary list |
 
-### ❗ Validation Error (400)
+### Classroom settings
 
-```json
-{
-  "success": false,
-  "errors": [
-    {
-      "field": "capacity_limit",
-      "message": "capacity_limit must be an integer between 1 and 999"
-    }
-  ]
-}
-```
+| Method | Path | Role | Purpose |
+| --- | --- | --- | --- |
+| PATCH | `/:classroomId/auto-approve` | teacher | Enable or disable auto-approval |
 
-# 2. Get All Classrooms by Teacher (Teacher)
+## Important Request Notes
 
-### Endpoint
+### `POST /create-classroom`
 
-```
-GET /my-classrooms
-```
+Required fields:
 
-### Request Body
+- `name`
+- `classroom_status`: `private` or `public`
+- `capacity_limit`: integer `1..100`
 
-```json
+Optional:
 
-```
+- `description` up to 1000 chars
 
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "82d73181-f9b7-41f8-9bf1-0eaef441522a",
-      "teacher_id": "5d989deb-f811-479e-beb3-75e8d43db64c",
-      "name": "Lớp luyện thi IELTS 8.0",
-      "description": "Lớp học luyện thi IELTS dành cho học viên trình độ khá - giỏi.",
-      "join_code": "BH54G9",
-      "learner_count": 0,
-      "assignment_count": 0,
-      "classroom_status": "private",
-      "is_auto_approval_enabled": false,
-      "capacity_limit": 50,
-      "created_at": "2025-07-07T16:18:06.25457+00:00",
-      "updated_at": "2025-07-07T16:18:06.25457+00:00"
-    },
-    {
-      "id": "0fa21d69-8d6b-4622-8b34-b2f64fffc0f5",
-      "teacher_id": "5d989deb-f811-479e-beb3-75e8d43db64c",
-      "name": "Lớp luyện thi IELTS 5.0",
-      "description": "Lớp học luyện thi IELTS dành cho học viên trình độ trung bình",
-      "join_code": "H262KE",
-      "learnercount": 0,
-      "assignmentcount": 0,
-      "classroom_status": "public",
-      "is_auto_approval_enabled": false,
-      "capacity_limit": 60,
-      "created_at": "2025-07-09T09:17:58.658838+00:00",
-      "updated_at": "2025-07-09T09:17:58.658838+00:00"
-    }
-  ]
-}
-```
-
-### Response Error
-
-### 🚫 Forbidden (Not teacher: 403)
-
-```json
-{
-  "success": false,
-  "message": "Insufficient permissions"
-}
-```
-
-# 3. Request to Join a Classroom (Learner)
-
-### Endpoint
-
-```
-POST /join-request
-```
-
-### Request Body
+### `POST /join-request`
 
 ```json
 {
@@ -167,467 +90,17 @@ POST /join-request
 }
 ```
 
-### Success Response
-
-```json
-// Auto-Approval enabled
-{
-  "success": true,
-  "message": "You have joined the classroom."
-}
-
-// Manual approval eequired
-{
-  "success": true,
-  "message": "Join request submitted. Please wait for approval."
-}
-```
-
-### Error Response
-
-```json
-// Classroom not found / deleted
-{
-	"success": false,
-	"message": "Classroom not found or has been deleted."
-}
-
-// Classroom is private
-{
-	"success": false,
-	"message": "This classroom is private. You must be invited by the teacher."
-}
-
-// User is the classroom owner
-{
-	"success": false,
-	"message": "You are the owner of this classroom."
-}
-
-// Already requested to join
-{
-	"success": false,
-	"message": "You have already requested to join."
-}
-
-// Already a member
-{
-	"success": false,
-	"message": "You are already a member of this classroom."
-}
-
-// Class is full
-{
-	"success": false,
-	"message": "This classroom has reached its capacity limit."
-}
-```
-
-# 4. Get Learner’s Join Requests (Teacher)
-
-### Endpoint
-
-```
-GET /:classroomId/join-requests
-```
-
-### Request Body
-
-```json
-
-```
-
-### Response Success (200)
+### `POST /:classroomId/approve-request`
 
 ```json
 {
-  "success": true,
-  "data": [
-    {
-      "learner_id": "4d876ced-9e9a-4fa1-8b6d-4269291350a6",
-      "email": "hoan@gmail.com",
-      "join_status": "pending_request",
-      "joined_at": null,
-      "users": {
-        "avatar_url": null,
-        "display_name": null
-      }
-    },
-    {
-      "learner_id": "8c74a0ad-0e75-4f4a-a507-00146ce31299",
-      "email": "bin@gmail.com",
-      "join_status": "pending_request",
-      "joined_at": null,
-      "users": {
-        "avatar_url": null,
-        "display_name": null
-      }
-    }
-  ]
+  "learnerId": "uuid"
 }
 ```
 
-### Error Response
+The same `learnerId` body shape is used by reject and remove actions.
 
-```json
-// 403	Not the teacher of the class
-{
-	"success": false,
-	"message": "You do not have access to this classroom."
-}
-// 404	Classroom not found or deleted
-{
-	"success": false,
-	"message": "Classroom not found or has been deleted."
-}
-```
-
-# 5. Approve Join Request (Teacher)
-
-### Endpoint
-
-```
-POST /:classroomId/approve-request
-```
-
-### Request Body
-
-```json
-{
-  "learnerId": "4d876ced-9e9a-4fa1-8b6d-4269291350a6"
-}
-```
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "message": "Join request approved."
-}
-```
-
-### Response Error
-
-```json
-// 400	Learner not found in classroom
-{
-	"success": false,
-	"message": "Learner is not part of this classroom."
-}
-
-// 400	Learner not in pending state
-{
-	"success": false,
-	"message": "Learner is not in pending request state."
-}
-
-// 403	Not the teacher of this class
-{
-	"success": false,
-	"message": "Insufficient classroom permissions."
-}
-
-// 404	Classroom not found/deleted
-{
-	"success": false,
-	"message": "Classroom not found or has been deleted."
-}
-
-// 400	Class is full
-{
-	"success": false,
-	"message": "Classroom is full. Cannot approve more learners."
-}
-```
-
-# 6. Reject Join Request (Teacher)
-
-### Endpoint
-
-```
-POST /:classroomId/reject-request
-```
-
-### Request Body
-
-```json
-{
-  "learnerId": "4d876ced-9e9a-4fa1-8b6d-4269291350a6"
-}
-```
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "message": "Join request rejected."
-}
-```
-
-### Response Error
-
-```json
-// 400	Learner not found in classroom
-{
-	"success": false,
-	"message": "Learner is not part of this classroom."
-}
-
-// 400	Learner not in pending state
-{
-	"success": false,
-	"message": "Learner is not in pending request state."
-}
-
-// 403	Not the teacher of this class
-{
-	"success": false,
-	"message": "Insufficient classroom permissions."
-}
-
-// 404	Classroom not found/deleted
-{
-	"success": false,
-	"message": "Classroom not found or has been deleted."
-}
-```
-
-# 7. Approve All Join Requests (Teacher)
-
-### Endpoint
-
-```
-POST /:classroomId/approve-all
-```
-
-### Request Body
-
-```json
-
-```
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "message": "Approved 2 learners."
-}
-```
-
-### Response Error
-
-```json
-// 403	Not the teacher of the class
-{
-	"success": false,
-	"message": "You do not have access to this classroom."
-}
-// 404	Classroom not found or deleted
-{
-	"success": false,
-	"message": "Classroom not found or has been deleted."
-}
-```
-
-# 8. Get Learners in Classroom (Teacher)
-
-### Endpoint
-
-```
-GET /:classroomId/learners
-```
-
-### Request Body
-
-```json
-
-```
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "learner_id": "uuid-string",
-      "email": "student@example.com",
-      "joined_at": "2025-07-09T12:34:56.000Z",
-      "users": {
-        "display_name": "Student A",
-        "avatar_url": "https://cdn.example.com/avatar.png"
-      }
-    },
-    ...
-  ]
-}
-```
-
-### Response Error
-
-```json
-// 403	Not the teacher of the class
-{
-	"success": false,
-	"message": "You do not have access to this classroom."
-}
-// 404	Classroom not found or deleted
-{
-	"success": false,
-	"message": "Classroom not found or has been deleted."
-}
-```
-
-# 9. Remove a Learner (Teacher)
-
-### Endpoint
-
-```
-POST /:classroomId/remove-learner
-```
-
-### Request Body
-
-```json
-{
-  "learnerId": "4d876ced-9e9a-4fa1-8b6d-4269291350a6"
-}
-```
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "message": "Learner has been removed from the classroom."
-}
-```
-
-### Response Error
-
-```json
-// 400	Learner not found in classroom
-{
-	"success": false,
-	"message": "Learner not found in this classroom."
-}
-
-// 400	Learner is not currently joined
-{
-	"success": false,
-	"message": "Cannot remove learner who is not currently in the class."
-}
-
-// 404	Classroom not found or deleted
-{
-	"success": false,
-	"message": "Classroom not found or has been deleted."
-}
-```
-
-# 10. Delete a Classroom (Teacher)
-
-### Endpoint
-
-```
-DELETE /:classroomId
-```
-
-### Request Body
-
-```json
-
-```
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "message": "Classroom has been deleted."
-}
-```
-
-### Response Error
-
-```json
-// 404	Classroom not found or deleted
-{
-  "success": false,
-  "message": "Classroom not found or has been deleted."
-}
-```
-
-# 11. Search Learners by Display Name (All)
-
-### Endpoint
-
-```
-GET /:classroomId/search-learners
-```
-
-### Request Body
-
-```json
-
-```
-
-### Query Parameters
-
-| Parameter | Type   | Required | Description                                                                                    |
-| --------- | ------ | -------- | ---------------------------------------------------------------------------------------------- |
-| `status`  | string | ✅ Yes   | Learner join status to filter by. Options: `joined`, `pending_request`, `pending_invite`, etc. |
-| `q`       | string | ❌ No    | Optional keyword to search in `users.display_name`                                             |
-
-Example: `/search-learners?status=joined&q=nghi`
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "learner_id": "8c74a0ad-0e75-4f4a-a507-00146ce31299",
-      "email": "bin@gmail.com",
-      "join_status": "joined",
-      "users": {
-        "avatar_url": null,
-        "display_name": "Nghị"
-      }
-    }
-  ]
-}
-```
-
-### Response Error
-
-```json
-// 400	Missing status
-{
-	"success": false,
-	"message": "Missing required parameter: status"
-}
-
-// 404	Classroom not found or deleted
-{
-	"success": false,
-	"message": "Classroom not found or has been deleted."
-}
-```
-
-# 12. Invite Learner (Teacher)
-
-### Endpoint
-
-```
-POST /:classroomId/invitation
-```
-
-### Request Body
+### `POST /:classroomId/invitation`
 
 ```json
 {
@@ -635,708 +108,48 @@ POST /:classroomId/invitation
 }
 ```
 
-### Response Success (200)
+### `POST /accept-invitation`
 
 ```json
 {
-  "success": true,
-  "message": "Invitation has been sent."
+  "token": "invitation-token"
 }
 ```
 
-### Response Error
+### `POST /:classroomId/assignment`
 
-```json
-// 400	Missing email
-{
-  "success": false,
-  "message": "Missing email of learner."
-}
+Required fields:
 
-// 400	Invite yourself
-{
-  "success": false,
-  "message": "You cannot invite yourself to your own classroom."
-}
+- `vocabListId`
+- `title`
+- `exerciseMethod`: `flashcard`, `fill_blank`, or `word_association`
+- `wordsPerReview`: integer `5..30`
+- `startDate`: ISO 8601 datetime
+- `dueDate`: ISO 8601 datetime
 
-// 400	Already member
-{
-  "success": false,
-  "message": "This learner is already a member of the classroom."
-}
+Validation also enforces:
 
-// 404	Classroom not found or deleted
-{
-  "success": false,
-  "message": "Classroom not found or has been deleted."
-}
-```
+- `wordsPerReview` cannot exceed the number of words in the selected list
+- `dueDate` cannot be in the past
+- `dueDate` must be equal to or after `startDate`
 
-# 13. Accept Invitation (Learner)
-
-### Endpoint
-
-```
-POST /accept-invitation
-```
-
-### Request Body
-
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiIs..."
-}
-```
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "message": "You have successfully joined the classroom.",
-  "data": {
-    "classroomId": "uuid-of-class"
-  }
-}
-```
-
-### Response Error
-
-```json
-// 400	Missing token
-{
-  "success": false,
-  "message": "Missing invitation token."
-}
-
-// 400	Invalid or expired token
-{
-  "success": false,
-  "message": "Invalid or expired invitation token."
-}
-
-// 400	Invitation cancelled
-{
-  "success": false,
-  "message": "This invitation has been cancelled."
-}
-
-// 400	Already joined
-{
-  "success": false,
-  "message": "You are already a member of this classroom."
-}
-
-// 400	Token does not belong to this account
-{
-  "success": false,
-  "message": "This invitation was not sent to your account."
-}
-
-// 404	Classroom not found or deleted
-{
-  "success": false,
-  "message": "Classroom not found or has been deleted."
-}
-```
-
-# 14. Cancel Invitation (Teacher)
-
-### Endpoint
-
-```
-DELETE /:classroomId/invitation
-```
-
-### Request Body
-
-```json
-{
-  "email": "student@example.com"
-}
-```
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "message": "Invitation has been cancelled."
-}
-```
-
-### Response Error
-
-```json
-// 400	Missing email
-{
-  "success": false,
-  "message": "Missing email in request body."
-}
-
-// 400	Invitation already accepted
-{
-  "success": false,
-  "message": "This invitation has already been accepted and cannot be cancelled."
-}
-
-// 404	Invitation not found
-{
-  "success": false,
-  "message": "Invitation not found."
-}
-
-// 404	Classroom not found or deleted
-{
-  "success": false,
-  "message": "Classroom not found or has been deleted."
-}
-```
-
-# 15. Create Assignment (Teacher)
-
-### Endpoint
-
-```
-POST /:classroomId/assignment
-```
-
-### Request Body
-
-```json
-{
-  "vocabListId": "3ecb287e-453a-4c97-a590-e85742d0b9d2",
-  "title": "Unit 1: Business Basics",
-  "exerciseMethod": "flashcard",
-  "wordsPerReview": 5,
-  "startDate": "2025-07-15T10:00:00Z",
-  "dueDate": "2025-07-20T10:00:00Z"
-}
-```
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "message": "Assignment created successfully.",
-  "data": {
-    "id": "084c74f5-4e34-444e-b0ea-5d7e16707aae",
-    "classroom_id": "0942ed47-0982-4916-b7bd-ad5735bd60a3",
-    "vocab_list_id": "3ecb287e-453a-4c97-a590-e85742d0b9d2",
-    "teacher_id": "16ba97c6-15f3-4515-88af-fd74285d47ae",
-    "title": "Unit 1: Business Basics",
-    "exercise_method": "flashcard",
-    "words_per_review": 5,
-    "sublist_count": 2,
-    "start_date": "2025-07-15T10:00:00+00:00",
-    "due_date": "2025-07-20T10:00:00+00:00",
-    "created_at": "2025-07-17T15:58:59.63604+00:00",
-    "updated_at": "2025-07-17T15:58:59.63604+00:00"
-  }
-}
-```
-
-### Response Error
-
-```json
-// 400	List not found or empty.
-{
-  "success": false,
-  "message": "Vocabulary list not found or empty."
-}
-
-// 400 Invalid wordsPerReview
-{
-  "success": false,
-  "message": "wordsPerReview must be between 5 and 30."
-}
-
-// 404	Classroom not found or deleted
-{
-  "success": false,
-  "message": "Classroom not found or has been deleted."
-}
-```
-
-# 16. Get All Classroom by Learner (Learner)
-
-### Endpoint
-
-```
-GET /my-joined
-```
-
-### Request Body
-
-```json
-
-```
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "0942ed47-0982-4916-b7bd-ad5735bd60a3",
-      "teacher_id": "16ba97c6-15f3-4515-88af-fd74285d47ae",
-      "name": "TOEIC Test",
-      "description": "Class for TOEIC practice",
-      "join_code": "ABC123",
-      "learner_count": 1,
-      "status": "public",
-      "assignment_count": 2
-    }
-  ]
-}
-```
-
-### Response Error
-
-```json
-
-```
-
-# 17. Get Invitations (Teacher)
-
-### Endpoint
-
-```
-GET /:classroomId/invitations
-```
-
-### Request Body
-
-```json
-
-```
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "email": "nghi1@gmail.com"
-    },
-    {
-      "email": "nghi2@gmail.com"
-    }
-  ]
-}
-```
-
-### Response Error
-
-```json
-
-```
-
-# 18. Get Assignments by Teacher (Teacher)
-
-### Endpoint
-
-```
-GET /:classroomId/assignments
-```
-
-### Request Body
-
-```json
-
-```
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "4a6301e5-5a39-4cdb-9c9e-20ddc0b703a6",
-      "title": "Unit 2: Airport",
-      "exercise_method": "flashcard",
-      "start_date": "2025-07-20T10:00:00+00:00",
-      "due_date": "2025-07-25T10:00:00+00:00",
-      "words_per_review": 5,
-      "sublist_count": 2,
-      "created_at": "2025-07-18T02:38:22.897267+00:00",
-      "updated_at": "2025-07-18T02:38:22.897267+00:00",
-      "status": "pending"
-    },
-    {
-      "id": "084c74f5-4e34-444e-b0ea-5d7e16707aae",
-      "title": "Unit 1: Business Basics",
-      "exercise_method": "flashcard",
-      "start_date": "2025-07-15T10:00:00+00:00",
-      "due_date": "2025-07-20T10:00:00+00:00",
-      "words_per_review": 6,
-      "sublist_count": 2,
-      "created_at": "2025-07-17T15:58:59.63604+00:00",
-      "updated_at": "2025-07-17T15:58:59.63604+00:00",
-      "status": "assigned"
-    }
-  ]
-}
-```
-
-### Response Error
-
-```json
-
-```
-
-# 19. Get To review Assignments (Learner)
-
-### Endpoint
-
-```
-GET /:classroomId/assignments/to-review
-```
-
-### Request Body
-
-```json
-
-```
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "assignment_id": "084c74f5-4e34-444e-b0ea-5d7e16707aae",
-      "title": "Unit 1: Business Basics",
-      "exercise_method": "flashcard",
-      "completed_sublist_index": 0,
-      "sublist_count": 2,
-      "due_date": "2025-07-20T10:00:00+00:00",
-      "status": "assigned",
-      "learner_status": "not_started"
-    },
-    {
-      "assignment_id": "65bc85e8-9751-447a-aa71-44ae3da30f59",
-      "title": "Unit 3: Technology",
-      "exercise_method": "flashcard",
-      "completed_sublist_index": 0,
-      "sublist_count": 2,
-      "due_date": "2025-07-25T10:00:00+00:00",
-      "status": "assigned",
-      "learner_status": "not_started"
-    }
-  ]
-}
-```
-
-### Response Error
-
-```json
-
-```
-
-# 20. Get Reviewed Assignments (Learner)
-
-### Endpoint
-
-```
-GET /:classroomId/assignments/reviewed
-```
-
-### Request Body
-
-```json
-
-```
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "assignment_id": "65bc85e8-9751-447a-aa71-44ae3da30f59",
-      "title": "Unit 3: Technology",
-      "exercise_method": "flashcard",
-      "completed_sublist_index": 2,
-      "sublist_count": 2,
-      "due_date": "2025-07-25T10:00:00+00:00",
-      "learner_status": "completed"
-    }
-  ]
-}
-```
-
-### Response Error
-
-```json
-
-```
-
-# 21. Get Assignments Details (Teacher)
-
-### Endpoint
-
-```
-GET /:classroomId/:assignmentId
-```
-
-### Request Body
-
-```json
-
-```
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "data": {
-    "title": "Unit 3: Technology",
-    "start_date": "2025-07-17T10:00:00+00:00",
-    "due_date": "2025-07-25T10:00:00+00:00",
-    "total_words": 10,
-    "reviewed_learner_count": 1,
-    "vocabulary": [
-      {
-          "term": "invoice",
-          "definition": "a document asking for payment"
-      },
-      {
-          "term": "shipment",
-          "definition": "an amount of goods sent together"
-      },
-      {
-          "term": "customer",
-          "definition": "a person who buys goods or services"
-      }
-      ...
-    ]
-  }
-}
-```
-
-### Response Error (400)
-
-```json
-{
-  "success": false,
-  "message": "Assignment not found."
-}
-```
-
-# 22. Change Auto-approve Setting (Teacher)
-
-### Endpoint
-
-```
-PATCH /:classroomId/auto-approve
-```
-
-### Request Body
+### `PATCH /:classroomId/auto-approve`
 
 ```json
 {
   "isAutoApprovalEnabled": true
 }
-// true to turn on, false to turn off
 ```
 
-### Response Success (200)
+## Important Response Notes
 
-```json
-{
-  "success": true,
-  "message": "Auto-approve setting has been enabled.", // turn off is disabled.
-  "data": {
-    "classroomId": "0942ed47-0982-4916-b7bd-ad5735bd60a3",
-    "isAutoApprovalEnabled": true
-  }
-}
-```
+- create-classroom and create-assignment return `201`
+- join by code returns different success messages depending on auto-approval
+- `GET /:classroomId/:assignmentId` returns assignment metadata plus vocabulary content for teacher review
+- `GET /:classroomId/assignment/:assignmentId/vocab-list/:subListId` returns the nested `result.data` payload from the classroom service
 
-### Response Error (400)
+## Important Current Behavior
 
-```json
-{
-  "success": false,
-  "message": "isAutoApprovalEnabled must be a boolean."
-}
-```
-
-# 23. Delete Assignments (Teacher)
-
-### Endpoint
-
-```
-DELETE /:classroomId/:assignmentId
-```
-
-### Request Body
-
-```json
-
-```
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "message": "Assignment deleted successfully."
-}
-```
-
-### Response Error (400)
-
-```json
-{
-  "success": false,
-  "message": "Assignment not found."
-}
-```
-
-# 24. Leave Classroom (Learner)
-
-### Endpoint
-
-```
-POST /:classroomId/leave
-```
-
-### Request Body
-
-```json
-
-```
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "message": "You have left the classroom."
-}
-```
-
-### Response Error (400)
-
-```json
-
-```
-
-# 25. Get Overdue Assignments (Learner)
-
-### Endpoint
-
-```
-GET /:classroomId/assignments/overdue
-```
-
-### Request Body
-
-```json
-
-```
-
-### Response Success (200)
-
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "assignment_id": "084c74f5-4e34-444e-b0ea-5d7e16707aae",
-      "title": "Unit 1: Business Basics",
-      "exercise_method": "flashcard",
-      "completed_sublist_index": 0,
-      "sublist_count": 2,
-      "due_date": "2025-07-20T10:00:00+00:00",
-      "status": "overdue",
-      "learner_status": "not_started"
-    }
-  ]
-}
-```
-
-### Response Error
-
-```json
-
-```
-
----
-
-# Common Error Responses
-
-### Validation Error (400)
-
-```json
-{
-  "success": false,
-  "errors": [
-    {
-      "field": "password",
-      "message": "Password must contain uppercase, lowercase and number"
-    }
-  ]
-}
-```
-
-### Server Error (500)
-
-```json
-{
-  "success": false,
-  "error": "Internal server error"
-}
-```
-
-### Rate Limit Exceeded (429)
-
-```json
-{
-  "success": false,
-  "error": "Too many requests. Please try again later."
-}
-```
-
-### Classroom Error
-
-```json
-// 404 Not found
-{
-    "success": false,
-    "message": "Classroom not found or has been deleted."
-}
-// 403 Forbidden
-{
-    "success": false,
-    "message": "Insufficient classroom permissions."
-}
-// 403 Forbidden
-{
-    "success": false,
-    "message": "You do not have access to this classroom."
-}
-```
-
-# JWT Token Structure
-
-Decoded JWT payload:
-
-```json
-{
-  "classroomId": "0942ed47-0982-4916-b7bd-ad5735bd60a3",
-  "email": "abc@gmail.com",
-  "type": "classroom_invitation"
-}
-```
-
-Token expiry: 7 days (configurable via `JWT_EXPIRE` env variable)
+- classroom deletion is modeled through `classroom_status = deleted`
+- invitation acceptance depends on the authenticated user's account matching the invitation email
+- learner assignment progress is tracked separately from review sessions

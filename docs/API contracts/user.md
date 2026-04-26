@@ -1,227 +1,77 @@
-# User Module API Contract
+# User API Contract
 
-## Overview
+## Base Path
 
-The User module provides comprehensive user profile management, learning statistics tracking, and content reporting functionality for VocaBoost.
+`/api/user`
 
-## API Endpoints
+## Authentication
 
-## 1. Get User Profile
+All user routes require a bearer token.
 
-```
-GET /profile
-```
+## Endpoints
 
-Returns user profile information including settings and counts.
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/profile` | Get the current user's profile |
+| PUT | `/profile` | Update profile fields and optional avatar |
+| POST | `/report` | Report a vocabulary word for moderation |
+| GET | `/profile/statistics` | Get learning statistics for the current user |
 
-**Response:**
+## Request Notes
 
-```json
-{
-  "success": true,
-  "message": "Profile retrieved successfully",
-  "data": {
-    "id": "e26530eb-5297-4eb7-8130-d34b7e654a25",
-    "email": "user@example.com",
-    "display_name": "Trần Văn A",
-    "avatar_url": null,
-    "role": "teacher",
-    "created_at": "2025-07-24T14:55:41.792461+00:00",
-    "user_settings": {
-      "theme": "light",
-      "language": "vi",
-      "timezone": "Asia/Ho_Chi_Minh",
-      "daily_goal": 10,
-      "learning_preferences": {
-        "session_length": 20,
-        "preferred_methods": ["flashcard"]
-      },
-      "notification_preferences": {
-        "push": false,
-        "email": true
-      }
-    },
-    "teacherVerification": {
-      "status": "pending",
-      "submittedAt": "2025-07-24T17:05:56.109212+00:00",
-      "institution": "Trường THPT B",
-      "rejectionReason": null,
-      "message": "Your verification request is being reviewed by our team."
-    },
-    "classroomCount": 0,
-    "vocabularyListCount": 0
-  }
-}
-```
+### `PUT /profile`
 
-## 2. Update Profile
+Accepted fields:
 
-```
-PUT /profile
-```
+- `displayName`
+- `dailyGoal`
+- `removeAvatar`
+- optional file field `avatar`
 
-Updates user profile information.
+This route can be used as JSON when only updating text fields, or as `multipart/form-data` when uploading an avatar.
 
-**Request (multipart/form-data):**
-
-- `displayName` (string, optional): New display name
-- `avatar` (file, optional): Avatar image file
-- `dailyGoal` (int, optional): Daily goal word user want to review
-- `removeAvatar` (boolean, optional): Set to true to remove avatar
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "message": "Profile updated successfully",
-  "data": {
-    "id": "e26530eb-5297-4eb7-8130-d34b7e654a25",
-    "email": "user@example.com",
-    "display_name": "Trần Văn A",
-    "avatar_url": null,
-    "role": "teacher",
-    "created_at": "2025-07-24T14:55:41.792461+00:00",
-    "user_settings": {
-      "theme": "light",
-      "language": "vi",
-      "timezone": "Asia/Ho_Chi_Minh",
-      "daily_goal": 11,
-      "learning_preferences": {
-        "session_length": 20,
-        "preferred_methods": ["flashcard"]
-      },
-      "notification_preferences": {
-        "push": false,
-        "email": true
-      }
-    },
-    "teacherVerification": {
-      "status": "pending",
-      "submittedAt": "2025-07-24T17:05:56.109212+00:00",
-      "institution": "Trường THPT B",
-      "rejectionReason": null,
-      "message": "Your verification request is being reviewed by our team."
-    },
-    "classroomCount": 0,
-    "vocabularyListCount": 0
-  }
-}
-```
-
-## 3. Report Content
-
-```
-POST /report
-```
-
-Reports inappropriate or incorrect vocabulary content.
-
-**Request Body:**
+### `POST /report`
 
 ```json
 {
   "wordId": "uuid",
-  "reason": "This word contains offensive content that is inappropriate for learning."
+  "reason": "This word contains incorrect or inappropriate content."
 }
 ```
 
-### Response Success (201)
+Validation rules:
+
+- `wordId` must be a UUID
+- `reason` must be present and be between 5 and 500 characters
+
+## Response Notes
+
+### `GET /profile`
+
+Returns the profile assembled by `userProfileModel.getProfile()` plus additional derived fields such as:
+
+- `teacherVerification` for teacher-role users
+- `classroomCount` for teacher-role users
+- `vocabularyListCount`
+
+### `GET /profile/statistics`
+
+Returns grouped statistics sections:
+
+- `summaryStats`
+- `progressOverTime`
+- `completionRates`
+- `studyConsistency`
+
+### `POST /report`
 
 ```json
 {
   "success": true,
-  "message": "Content reported successfully. Our team will review it.",
+  "message": "Word reported successfully. Our team will review it.",
   "data": {
     "reportId": "uuid",
     "status": "open"
   }
 }
 ```
-
-### Response Error (400/404)
-
-```json
-{
-  "success": false,
-  "error": "Word not found."
-}
-```
-
-```json
-{
-  "success": false,
-  "error": "You have already reported this content."
-}
-```
-
-## Endpoints Not Yet Implemented
-
-> **Note**: The following endpoints are planned but not yet implemented in the backend.
-
-### 4. Get Learning Statistics
-
-```
-GET /profile/statistics
-```
-
-_(Planned)_ - Returns learning statistics matching the UI design.
-
-### 5. Delete Account
-
-```
-POST /delete-account
-```
-
-_(Planned)_ - Soft deletes user account (can be recovered within 30 days).
-
-## Error Responses
-
-All endpoints may return these error responses:
-
-```json
-{
-  "success": false,
-  "message": "Error description",
-  "details": [
-    {
-      "field": "fieldName",
-      "message": "Validation error message"
-    }
-  ]
-}
-```
-
-## File Upload Specifications
-
-### Avatar Upload
-
-- **Allowed formats:** JPEG, PNG, GIF, WebP
-- **Max file size:** 5MB
-- **Storage:** Public bucket
-
-## Settings Constraints
-
-### Daily Goal
-
-- **Min:** 1 word
-- **Max:** 1000 words
-- **Default:** 10 words
-
-## Rate Limiting
-
-- Report content: 10 requests per 15 minutes
-
-## Notes
-
-1. **Teacher Verification Display:**
-   - When `teacherVerification.status === "approved"`, show "Verified" in green
-   - Otherwise, show "Not verified" in red
-   - Display institution name and school email when verified
-2. **Statistics Display:**
-   - Progress chart shows cumulative words learned over time
-   - Completion rate shows top 5 recent vocabulary lists
-   - Study consistency shows active study days in calendar format
-3. **Profile Counts:**
-   - For teachers: Shows classroom count (e.g., "32 Classrooms")
-   - For all users: Shows vocabulary list count (e.g., "10 Vocabulary Lists")
