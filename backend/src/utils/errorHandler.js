@@ -17,13 +17,20 @@ class ErrorHandler {
   ) {
     logger.error(`[${context}] Error:`, error);
 
+    const responseStatusCode = error.statusCode || statusCode;
+    const details = error.publicDetails || null;
+
+    if (error.retryAfterSeconds && typeof res.set === 'function') {
+      res.set('Retry-After', String(error.retryAfterSeconds));
+    }
+
     // Don't expose internal error details in production
     const message =
       process.env.NODE_ENV === 'production'
-        ? userMessage
+        ? error.userMessage || userMessage
         : error.message || userMessage;
 
-    return ResponseUtils.error(res, message, statusCode);
+    return ResponseUtils.error(res, message, responseStatusCode, details);
   }
 
   static handleDatabaseError(res, error, operation, resource) {

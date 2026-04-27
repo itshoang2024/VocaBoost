@@ -41,7 +41,7 @@ Required groups:
 - JWT: `JWT_SECRET`, `JWT_REFRESH_SECRET`, `JWT_EXPIRE`
 - Email: `SMTP_USER`, `SMTP_PASS`, `FROM_EMAIL`
 - Google OAuth: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL` if Google sign-in is enabled
-- AI: `GEMINI_API_KEY`, `GEMINI_MODEL`
+- AI: `GEMINI_API_KEY`, `GEMINI_MODEL` (preferred model variable; legacy local `MODEL_ID` is also accepted)
 
 ### Frontend
 

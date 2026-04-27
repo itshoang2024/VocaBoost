@@ -44,3 +44,17 @@ supabase db push
 - add new behavior as a new migration instead of rewriting applied migrations
 - keep migration descriptions meaningful because the docs reference them
 - update `../../docs/database.md` when schema or DB-side behavior changes
+
+## How to reset your database and load seed?
+
+```bash
+npx supabase login
+npx supabase link --project-ref <your-project-ref>
+npx supabase db reset --linked
+```
+
+If you don't want to load seed
+
+```bash
+npx supabase db reset --linked --no-seed 
+```

@@ -120,6 +120,7 @@ Missing-field helper routes also accept optional `currentData`, for example:
 - list queries return `lists` plus pagination metadata when applicable
 - word-list queries return `words` plus pagination metadata when applicable
 - AI helper routes return generated content under `data.example` or `data.result`
+- AI helper failures preserve provider-aware status codes when possible; Gemini quota exhaustion returns HTTP `429` with `details.code = "AI_QUOTA_EXHAUSTED"` and may include `details.retryAfterSeconds`.
 - popular lists and history rely on database-side history and view-count behavior
 
 ## Important Current Behavior

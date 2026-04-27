@@ -15,6 +15,11 @@ export const useEditWordManagement = () => {
 
   const normalizeSynonyms = useCallback((input) => {
     if (!input) return [];
+    if (Array.isArray(input)) {
+      return input
+        .map((s) => (typeof s === "string" ? s.trim() : ""))
+        .filter((s) => s !== "");
+    }
     if (typeof input === "string") {
       return input
         .split(",")
@@ -116,23 +121,37 @@ export const useEditWordManagement = () => {
         // Helper function to check if field is truly empty (null, undefined, empty string, or only spaces)
         const isFieldEmpty = (value) => {
           if (!value) return true;
-          if (typeof value === 'string') return value.trim() === '';
-          if (Array.isArray(value)) return value.length === 0 || value.every(item => !item || item.trim() === '');
+          if (typeof value === "string") return value.trim() === "";
+          if (Array.isArray(value)) {
+            return (
+              value.length === 0 ||
+              value.every((item) => !item || item.trim() === "")
+            );
+          }
           return false;
         };
 
         // Prepare current data for the word - treat empty/space-only fields as truly empty
         const currentData = {
-          phonetics: isFieldEmpty(word.phonetics) ? '' : word.phonetics.trim(),
-          synonyms: isFieldEmpty(word.synonyms) ? [] : 
-            (Array.isArray(word.synonyms) 
-              ? word.synonyms.filter(s => s && s.trim() !== '').map(s => s.trim())
-              : (typeof word.synonyms === 'string' && word.synonyms.trim() !== '')
-                ? word.synonyms.split(',').map(s => s.trim()).filter(s => s !== '')
-                : []
-            ),
-          translation: isFieldEmpty(word.translation) ? '' : word.translation.trim(),
-          exampleSentence: isFieldEmpty(word.exampleSentence) ? '' : word.exampleSentence.trim(),
+          phonetics: isFieldEmpty(word.phonetics) ? "" : word.phonetics.trim(),
+          synonyms: isFieldEmpty(word.synonyms)
+            ? []
+            : Array.isArray(word.synonyms)
+              ? word.synonyms
+                  .filter((s) => s && s.trim() !== "")
+                  .map((s) => s.trim())
+              : typeof word.synonyms === "string" && word.synonyms.trim() !== ""
+                ? word.synonyms
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter((s) => s !== "")
+                : [],
+          translation: isFieldEmpty(word.translation)
+            ? ""
+            : word.translation.trim(),
+          exampleSentence: isFieldEmpty(word.exampleSentence)
+            ? ""
+            : word.exampleSentence.trim(),
         };
 
         console.log("Word data:", word);
@@ -141,12 +160,7 @@ export const useEditWordManagement = () => {
         // If word has an ID (existing word), use the word-specific endpoint
         if (word.id) {
           response = await vocabularyService.generateMissingFields(word.id, {
-            currentData: {
-              pronunciation: currentData.phonetics,
-              synonyms: currentData.synonyms,
-              example: currentData.exampleSentence,
-              translation: currentData.translation,
-            },
+            currentData,
             // Don't send context parameter if not needed (context is optional)
           });
         } else {
@@ -154,20 +168,18 @@ export const useEditWordManagement = () => {
           response = await vocabularyService.generateMissingFields(null, {
             term: word.term.trim(),
             definition: word.definition.trim(),
-            currentData: {
-              pronunciation: currentData.phonetics,
-              synonyms: currentData.synonyms,
-              example: currentData.exampleSentence,
-              translation: currentData.translation,
-            },
+            currentData,
           });
         }
 
         console.log("AI Response:", response); // Debug log
 
         if (response?.data?.result?.generatedFields) {
-          console.log("Generated fields received:", response.data.result.generatedFields);
-          
+          console.log(
+            "Generated fields received:",
+            response.data.result.generatedFields
+          );
+
           try {
             // Use functional update to ensure we have the latest state
             setWords((currentWords) => {
@@ -179,25 +191,38 @@ export const useEditWordManagement = () => {
               const updated = [...currentWords];
               const generatedFields = response.data.result.generatedFields;
 
-              console.log("Before update - word at index", index, ":", updated[index]);
+              console.log(
+                "Before update - word at index",
+                index,
+                ":",
+                updated[index]
+              );
               console.log("Fields to update:", generatedFields);
 
               // Update only the fields that were generated - match backend field names exactly
               const updatedFields = {};
-              
-              if ('phonetics' in generatedFields && generatedFields.phonetics) {
+
+              if ("phonetics" in generatedFields && generatedFields.phonetics) {
                 updatedFields.phonetics = generatedFields.phonetics;
               }
-              
-              if ('synonyms' in generatedFields && generatedFields.synonyms) {
-                updatedFields.synonyms = generatedFields.synonyms;
+
+              if ("synonyms" in generatedFields && generatedFields.synonyms) {
+                updatedFields.synonyms = Array.isArray(generatedFields.synonyms)
+                  ? generatedFields.synonyms.join(", ")
+                  : generatedFields.synonyms;
               }
-              
-              if ('translation' in generatedFields && generatedFields.translation) {
+
+              if (
+                "translation" in generatedFields &&
+                generatedFields.translation
+              ) {
                 updatedFields.translation = generatedFields.translation;
               }
-            
-              if ('exampleSentence' in generatedFields && generatedFields.exampleSentence) {
+
+              if (
+                "exampleSentence" in generatedFields &&
+                generatedFields.exampleSentence
+              ) {
                 updatedFields.exampleSentence = generatedFields.exampleSentence;
               }
 
@@ -211,7 +236,12 @@ export const useEditWordManagement = () => {
                 generationPrompt: response.data.result.generationPrompt || null,
               };
 
-              console.log("After update - word at index", index, ":", updated[index]);
+              console.log(
+                "After update - word at index",
+                index,
+                ":",
+                updated[index]
+              );
               return updated;
             });
 
@@ -222,7 +252,10 @@ export const useEditWordManagement = () => {
           }
         } else {
           console.error("Unexpected response structure:", response);
-          toast("Failed to generate missing fields. Please try again.", "error");
+          toast(
+            "Failed to generate missing fields. Please try again.",
+            "error"
+          );
         }
       } catch (error) {
         console.error("Error generating missing fields:", error);

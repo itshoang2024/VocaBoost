@@ -480,7 +480,7 @@ class VocabularyService {
     if (error || !word) throw new Error('Word not found');
 
     if (!aiService.isAvailable()) {
-      throw new Error('AI service is temporarily unavailable');
+      throw this._createAIUnavailableError();
     }
 
     try {
@@ -507,13 +507,14 @@ class VocabularyService {
       };
     } catch (error) {
       logger.error(`Failed to generate example for word ${wordId}:`, error);
+      if (error.isAIServiceError) throw error;
       throw new Error('Failed to generate example sentence. Please try again.');
     }
   }
 
   async generateExampleForNewWord(term, definition, context = null) {
     if (!aiService.isAvailable()) {
-      throw new Error('AI service is temporarily unavailable');
+      throw this._createAIUnavailableError();
     }
 
     try {
@@ -528,6 +529,7 @@ class VocabularyService {
       };
     } catch (error) {
       logger.error(`Failed to generate example for new word ${term}:`, error);
+      if (error.isAIServiceError) throw error;
       throw new Error('Failed to generate example sentence. Please try again.');
     }
   }
@@ -539,27 +541,39 @@ class VocabularyService {
     if (error || !word) throw new Error('Word not found');
 
     if (!aiService.isAvailable()) {
-      throw new Error('AI service is temporarily unavailable');
+      throw this._createAIUnavailableError();
     }
 
     try {
+      const normalizedCurrentData = this._normalizeAICurrentData(currentData);
+      const hasCurrentData = (field) =>
+        Object.prototype.hasOwnProperty.call(normalizedCurrentData, field);
+
       // Merge word data with current data - prioritize currentData even if empty
       const mergedData = {
-        phonetics: currentData.hasOwnProperty('phonetics') ? currentData.phonetics : (word.phonetics || ''),
-        synonyms: currentData.hasOwnProperty('synonyms') ? currentData.synonyms : (word.synonyms || []),
-        translation: currentData.hasOwnProperty('translation') ? currentData.translation : (word.translation || ''),
-        exampleSentence: currentData.hasOwnProperty('exampleSentence') ? currentData.exampleSentence : (word.exampleSentence || ''),
+        phonetics: hasCurrentData('phonetics')
+          ? normalizedCurrentData.phonetics
+          : word.phonetics || '',
+        synonyms: hasCurrentData('synonyms')
+          ? normalizedCurrentData.synonyms
+          : word.synonyms || [],
+        translation: hasCurrentData('translation')
+          ? normalizedCurrentData.translation
+          : word.translation || '',
+        exampleSentence: hasCurrentData('exampleSentence')
+          ? normalizedCurrentData.exampleSentence
+          : word.exampleSentence || '',
       };
 
-      console.log('🔄 Current data from frontend:', currentData);
+      console.log('🔄 Current data from frontend:', normalizedCurrentData);
       console.log('🔄 Word data from database:', {
         phonetics: word.phonetics,
         synonyms: word.synonyms,
         translation: word.translation,
-        exampleSentence: word.exampleSentence
+        exampleSentence: word.exampleSentence,
       });
       console.log('🔄 Merged data being checked for missing fields:', mergedData);
-      
+
       const generatedFields = await aiService.generateMissingFields(
         word.term,
         word.definition,
@@ -585,7 +599,10 @@ class VocabularyService {
         vocabularyUpdateData.translation = generatedFields.translation;
       }
 
-      console.log('📝 Data being sent to vocabulary table update:', vocabularyUpdateData);
+      console.log(
+        '📝 Data being sent to vocabulary table update:',
+        vocabularyUpdateData
+      );
 
       // Update vocabulary table
       try {
@@ -614,7 +631,10 @@ class VocabularyService {
 
       // Handle example sentence separately
       if (generatedFields.exampleSentence) {
-        console.log('🔄 Updating example sentence:', generatedFields.exampleSentence);
+        console.log(
+          '🔄 Updating example sentence:',
+          generatedFields.exampleSentence
+        );
         try {
           await vocabularyModel.upsertExample(wordId, {
             exampleSentence: generatedFields.exampleSentence,
@@ -639,20 +659,28 @@ class VocabularyService {
       return result;
     } catch (error) {
       logger.error(`Failed to generate missing fields for word ${wordId}:`, error);
+      if (error.isAIServiceError) throw error;
       throw new Error('Failed to generate missing fields. Please try again.');
     }
   }
 
-  async generateMissingFieldsForNewWord(term, definition, currentData = {}, context = null) {
+  async generateMissingFieldsForNewWord(
+    term,
+    definition,
+    currentData = {},
+    context = null
+  ) {
     if (!aiService.isAvailable()) {
-      throw new Error('AI service is temporarily unavailable');
+      throw this._createAIUnavailableError();
     }
 
     try {
+      const normalizedCurrentData = this._normalizeAICurrentData(currentData);
+
       const generatedFields = await aiService.generateMissingFields(
         term,
         definition,
-        currentData,
+        normalizedCurrentData,
         context
       );
 
@@ -666,6 +694,7 @@ class VocabularyService {
       };
     } catch (error) {
       logger.error(`Failed to generate missing fields for new word ${term}:`, error);
+      if (error.isAIServiceError) throw error;
       throw new Error('Failed to generate missing fields. Please try again.');
     }
   }
@@ -799,6 +828,70 @@ class VocabularyService {
       }
     });
     return itemsToInsert;
+  }
+
+  _createAIUnavailableError() {
+    const error = new Error(
+      'AI service is temporarily unavailable. Please check Gemini configuration.'
+    );
+    error.name = 'AIServiceError';
+    error.isAIServiceError = true;
+    error.statusCode = 503;
+    error.code = 'AI_UNAVAILABLE';
+    error.userMessage = error.message;
+    error.publicDetails = { code: error.code };
+    return error;
+  }
+
+  _normalizeAICurrentData(currentData = {}) {
+    const source = currentData || {};
+    const has = (field) => Object.prototype.hasOwnProperty.call(source, field);
+    const normalizeString = (value) => {
+      if (typeof value === 'string') return value;
+      if (value === null || value === undefined) return '';
+      return String(value);
+    };
+    const normalizeSynonyms = (synonyms) => {
+      if (Array.isArray(synonyms)) {
+        return synonyms
+          .filter((synonym) => typeof synonym === 'string')
+          .map((synonym) => synonym.trim())
+          .filter(Boolean);
+      }
+
+      if (typeof synonyms === 'string') {
+        return synonyms
+          .split(',')
+          .map((synonym) => synonym.trim())
+          .filter(Boolean);
+      }
+
+      return [];
+    };
+
+    const normalized = {};
+
+    if (has('phonetics') || has('pronunciation')) {
+      normalized.phonetics = normalizeString(
+        source.phonetics ?? source.pronunciation
+      );
+    }
+
+    if (has('synonyms')) {
+      normalized.synonyms = normalizeSynonyms(source.synonyms);
+    }
+
+    if (has('translation')) {
+      normalized.translation = normalizeString(source.translation);
+    }
+
+    if (has('exampleSentence') || has('example')) {
+      normalized.exampleSentence = normalizeString(
+        source.exampleSentence ?? source.example
+      );
+    }
+
+    return normalized;
   }
 }
 

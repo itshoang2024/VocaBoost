@@ -1,6 +1,8 @@
 import api from "../../lib/api";
 import { decodeVocabularyList } from "../../utils/htmlUtils";
 
+const AI_REQUEST_TIMEOUT_MS = 60000;
+
 const vocabularyService = {
   // 1. Lấy danh sách của người dùng
   getMyLists: async (params = {}) => {
@@ -100,16 +102,21 @@ const vocabularyService = {
     if (wordId) {
       const res = await api.post(
         `/vocabulary/words/${wordId}/generate-example`,
-        data
+        data,
+        { timeout: AI_REQUEST_TIMEOUT_MS }
       );
       return res.data;
     }
 
-    const res = await api.post(`/vocabulary/generate-example`, {
-      term: data.term,
-      definition: data.definition,
-      context: data.context,
-    });
+    const res = await api.post(
+      `/vocabulary/generate-example`,
+      {
+        term: data.term,
+        definition: data.definition,
+        context: data.context,
+      },
+      { timeout: AI_REQUEST_TIMEOUT_MS }
+    );
     return res.data;
   },
 
@@ -118,17 +125,22 @@ const vocabularyService = {
     if (wordId) {
       const res = await api.post(
         `/vocabulary/words/${wordId}/generate-missing-fields`,
-        data
+        data,
+        { timeout: AI_REQUEST_TIMEOUT_MS }
       );
       return res.data;
     }
 
-    const res = await api.post(`/vocabulary/generate-missing-fields`, {
-      term: data.term,
-      definition: data.definition,
-      currentData: data.currentData,
-      context: data.context,
-    });
+    const res = await api.post(
+      `/vocabulary/generate-missing-fields`,
+      {
+        term: data.term,
+        definition: data.definition,
+        currentData: data.currentData,
+        context: data.context,
+      },
+      { timeout: AI_REQUEST_TIMEOUT_MS }
+    );
     return res.data;
   },
   // 16. Get Recently Viewed Lists

@@ -18,6 +18,8 @@ TRUNCATE TABLE
   notifications,
   audit_logs,
   reports,
+  monthly_user_stats,
+  user_list_history,
   assignment_sublists,
   learner_assignments,
   assignments,
@@ -577,6 +579,265 @@ INSERT INTO audit_logs (id, user_id, action, target_type, target_id, details, ip
 SET session_replication_role = DEFAULT;
 
 -- =================================================================
+-- DEMO-READY FRESHNESS PASS
+-- =================================================================
+-- Keep the seeded demo attractive for screenshots even when the project is
+-- reset months after the original course data was authored.
+
+UPDATE users
+SET
+    created_at = CASE id
+        WHEN '00000000-0000-0000-0000-000000000001' THEN NOW() - INTERVAL '180 days'
+        WHEN '00000000-0000-0000-0000-000000000002' THEN NOW() - INTERVAL '150 days'
+        WHEN '00000000-0000-0000-0000-000000000003' THEN NOW() - INTERVAL '120 days'
+        WHEN '00000000-0000-0000-0000-000000000004' THEN NOW() - INTERVAL '2 days'
+        WHEN '00000000-0000-0000-0000-000000000011' THEN NOW() - INTERVAL '75 days'
+        WHEN '00000000-0000-0000-0000-000000000012' THEN NOW() - INTERVAL '62 days'
+        WHEN '00000000-0000-0000-0000-000000000013' THEN NOW() - INTERVAL '48 days'
+        WHEN '00000000-0000-0000-0000-000000000014' THEN NOW() - INTERVAL '30 days'
+        WHEN '00000000-0000-0000-0000-000000000015' THEN NOW() - INTERVAL '18 days'
+        WHEN '00000000-0000-0000-0000-000000000016' THEN NOW() - INTERVAL '7 days'
+        ELSE created_at
+    END,
+    updated_at = NOW();
+
+UPDATE users
+SET account_status = 'suspended', updated_at = NOW() - INTERVAL '2 days'
+WHERE id = '00000000-0000-0000-0000-000000000015';
+
+INSERT INTO user_deactivation (user_id, deactivated_by, deactivated_at, deactivation_reason) VALUES
+('00000000-0000-0000-0000-000000000015', '00000000-0000-0000-0000-000000000001', NOW() - INTERVAL '2 days', 'Repeated inappropriate vocabulary reports during demo moderation review')
+ON CONFLICT (user_id, deactivated_by) DO UPDATE SET
+    deactivated_at = EXCLUDED.deactivated_at,
+    deactivation_reason = EXCLUDED.deactivation_reason;
+
+UPDATE teacher_requests
+SET
+    created_at = CASE id
+        WHEN '10000000-0000-0000-0000-000000000001' THEN NOW() - INTERVAL '120 days'
+        WHEN '10000000-0000-0000-0000-000000000002' THEN NOW() - INTERVAL '90 days'
+        WHEN '10000000-0000-0000-0000-000000000003' THEN NOW() - INTERVAL '1 day'
+        ELSE created_at
+    END,
+    school_email = CASE id
+        WHEN '10000000-0000-0000-0000-000000000001' THEN 'sarah.johnson@ishcmc.edu.vn'
+        WHEN '10000000-0000-0000-0000-000000000002' THEN 'david.chen@vnu.edu.vn'
+        WHEN '10000000-0000-0000-0000-000000000003' THEN 'emily.garcia@abclanguage.edu.vn'
+        ELSE school_email
+    END,
+    additional_notes = CASE id
+        WHEN '10000000-0000-0000-0000-000000000003' THEN 'CELTA-certified teacher requesting classroom tools for a weekend IELTS speaking cohort.'
+        ELSE additional_notes
+    END;
+
+UPDATE vocab_lists
+SET
+    title = CASE id
+        WHEN '20000000-0000-0000-0000-000000000001' THEN 'TOEFL Academic Core'
+        WHEN '20000000-0000-0000-0000-000000000002' THEN 'Business English Meetings'
+        WHEN '20000000-0000-0000-0000-000000000004' THEN 'IELTS Speaking Boost'
+        WHEN '20000000-0000-0000-0000-000000000005' THEN 'Tech English Essentials'
+        WHEN '20000000-0000-0000-0000-000000000006' THEN 'Everyday English Essentials'
+        WHEN '20000000-0000-0000-0000-000000000007' THEN 'Travel Survival Kit'
+        ELSE title
+    END,
+    description = CASE id
+        WHEN '20000000-0000-0000-0000-000000000001' THEN 'High-frequency academic words for TOEFL reading, listening, and integrated writing tasks.'
+        WHEN '20000000-0000-0000-0000-000000000002' THEN 'Meeting, planning, negotiation, and workplace vocabulary for professional communication.'
+        WHEN '20000000-0000-0000-0000-000000000004' THEN 'Natural phrases and topic vocabulary for confident IELTS speaking answers.'
+        WHEN '20000000-0000-0000-0000-000000000005' THEN 'Modern software, web, security, and product vocabulary for technology learners.'
+        WHEN '20000000-0000-0000-0000-000000000006' THEN 'Daily words for errands, schedules, commuting, weather, and small talk.'
+        WHEN '20000000-0000-0000-0000-000000000007' THEN 'Airport, hotel, transport, and travel problem-solving vocabulary.'
+        ELSE description
+    END,
+    created_at = CASE id
+        WHEN '20000000-0000-0000-0000-000000000006' THEN NOW() - INTERVAL '21 days'
+        WHEN '20000000-0000-0000-0000-000000000007' THEN NOW() - INTERVAL '18 days'
+        WHEN '20000000-0000-0000-0000-000000000008' THEN NOW() - INTERVAL '15 days'
+        ELSE NOW() - INTERVAL '60 days'
+    END,
+    updated_at = CASE id
+        WHEN '20000000-0000-0000-0000-000000000006' THEN NOW() - INTERVAL '25 minutes'
+        WHEN '20000000-0000-0000-0000-000000000001' THEN NOW() - INTERVAL '2 hours'
+        WHEN '20000000-0000-0000-0000-000000000002' THEN NOW() - INTERVAL '4 hours'
+        WHEN '20000000-0000-0000-0000-000000000004' THEN NOW() - INTERVAL '1 day'
+        WHEN '20000000-0000-0000-0000-000000000005' THEN NOW() - INTERVAL '2 days'
+        ELSE NOW() - INTERVAL '3 days'
+    END,
+    view_count = CASE id
+        WHEN '20000000-0000-0000-0000-000000000001' THEN 184
+        WHEN '20000000-0000-0000-0000-000000000004' THEN 156
+        WHEN '20000000-0000-0000-0000-000000000005' THEN 131
+        WHEN '20000000-0000-0000-0000-000000000002' THEN 118
+        WHEN '20000000-0000-0000-0000-000000000007' THEN 92
+        WHEN '20000000-0000-0000-0000-000000000008' THEN 74
+        ELSE view_count
+    END;
+
+INSERT INTO user_list_history (user_id, list_id, last_accessed_at) VALUES
+-- Alex Nguyen learner homepage
+('00000000-0000-0000-0000-000000000011', '20000000-0000-0000-0000-000000000006', NOW() - INTERVAL '12 minutes'),
+('00000000-0000-0000-0000-000000000011', '20000000-0000-0000-0000-000000000001', NOW() - INTERVAL '1 hour'),
+('00000000-0000-0000-0000-000000000011', '20000000-0000-0000-0000-000000000004', NOW() - INTERVAL '6 hours'),
+('00000000-0000-0000-0000-000000000011', '20000000-0000-0000-0000-000000000002', NOW() - INTERVAL '1 day'),
+('00000000-0000-0000-0000-000000000011', '20000000-0000-0000-0000-000000000005', NOW() - INTERVAL '2 days'),
+-- Maria Rodriguez learner homepage
+('00000000-0000-0000-0000-000000000012', '20000000-0000-0000-0000-000000000007', NOW() - INTERVAL '18 minutes'),
+('00000000-0000-0000-0000-000000000012', '20000000-0000-0000-0000-000000000002', NOW() - INTERVAL '3 hours'),
+('00000000-0000-0000-0000-000000000012', '20000000-0000-0000-0000-000000000001', NOW() - INTERVAL '1 day'),
+-- Teacher homepages
+('00000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', NOW() - INTERVAL '20 minutes'),
+('00000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002', NOW() - INTERVAL '2 hours'),
+('00000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000003', NOW() - INTERVAL '8 hours'),
+('00000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000004', NOW() - INTERVAL '45 minutes'),
+('00000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000005', NOW() - INTERVAL '5 hours')
+ON CONFLICT (user_id, list_id) DO UPDATE SET
+    last_accessed_at = EXCLUDED.last_accessed_at;
+
+INSERT INTO user_word_progress (
+    user_id,
+    word_id,
+    next_review_date,
+    interval_days,
+    ease_factor,
+    repetitions,
+    correct_count,
+    incorrect_count,
+    last_reviewed_at,
+    review_context
+) VALUES
+-- Alex Nguyen: Today review cards plus a usable self-owned review list.
+('00000000-0000-0000-0000-000000000011', '30000000-0000-0000-0000-000000000091', NOW() - INTERVAL '3 hours', 1, 2.35, 2, 4, 1, NOW() - INTERVAL '1 day', 'flashcard'),
+('00000000-0000-0000-0000-000000000011', '30000000-0000-0000-0000-000000000092', NOW() - INTERVAL '2 hours', 1, 2.40, 3, 5, 1, NOW() - INTERVAL '1 day', 'fill_blank'),
+('00000000-0000-0000-0000-000000000011', '30000000-0000-0000-0000-000000000093', NOW() - INTERVAL '90 minutes', 2, 2.45, 3, 6, 0, NOW() - INTERVAL '2 days', 'flashcard'),
+('00000000-0000-0000-0000-000000000011', '30000000-0000-0000-0000-000000000094', NOW() - INTERVAL '40 minutes', 3, 2.50, 4, 8, 1, NOW() - INTERVAL '3 days', 'fill_blank'),
+('00000000-0000-0000-0000-000000000011', '30000000-0000-0000-0000-000000000095', NOW() - INTERVAL '10 minutes', 1, 2.20, 1, 2, 2, NOW() - INTERVAL '1 day', 'flashcard'),
+('00000000-0000-0000-0000-000000000011', '30000000-0000-0000-0000-000000000096', CURRENT_DATE + INTERVAL '1 day' + INTERVAL '9 hours', 1, 2.50, 1, 2, 0, NOW() - INTERVAL '12 hours', 'flashcard'),
+('00000000-0000-0000-0000-000000000011', '30000000-0000-0000-0000-000000000097', CURRENT_DATE + INTERVAL '3 days' + INTERVAL '10 hours', 3, 2.60, 2, 4, 0, NOW() - INTERVAL '2 days', 'fill_blank'),
+('00000000-0000-0000-0000-000000000011', '30000000-0000-0000-0000-000000000098', CURRENT_DATE + INTERVAL '6 days' + INTERVAL '8 hours', 6, 2.80, 3, 7, 0, NOW() - INTERVAL '6 days', 'flashcard'),
+('00000000-0000-0000-0000-000000000011', '30000000-0000-0000-0000-000000000001', NOW() - INTERVAL '4 hours', 1, 2.40, 2, 3, 1, NOW() - INTERVAL '1 day', 'flashcard'),
+('00000000-0000-0000-0000-000000000011', '30000000-0000-0000-0000-000000000021', NOW() - INTERVAL '2 hours', 2, 2.55, 3, 5, 1, NOW() - INTERVAL '2 days', 'fill_blank'),
+('00000000-0000-0000-0000-000000000011', '30000000-0000-0000-0000-000000000048', CURRENT_DATE + INTERVAL '2 days' + INTERVAL '13 hours', 2, 2.45, 2, 3, 1, NOW() - INTERVAL '1 day', 'flashcard'),
+-- Teacher 1: due cards for teacher demo login.
+('00000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000001', NOW() - INTERVAL '2 hours', 1, 2.50, 3, 7, 0, NOW() - INTERVAL '1 day', 'flashcard'),
+('00000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000002', NOW() - INTERVAL '90 minutes', 1, 2.45, 2, 5, 1, NOW() - INTERVAL '1 day', 'fill_blank'),
+('00000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000021', NOW() - INTERVAL '3 hours', 2, 2.55, 4, 9, 1, NOW() - INTERVAL '2 days', 'flashcard'),
+('00000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000022', NOW() - INTERVAL '1 hour', 2, 2.65, 4, 8, 0, NOW() - INTERVAL '2 days', 'fill_blank'),
+('00000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000040', CURRENT_DATE + INTERVAL '2 days' + INTERVAL '9 hours', 4, 2.70, 5, 10, 1, NOW() - INTERVAL '4 days', 'flashcard'),
+('00000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000041', NOW() - INTERVAL '30 minutes', 1, 2.30, 1, 2, 1, NOW() - INTERVAL '12 hours', 'fill_blank'),
+-- Maria Rodriguez: travel list for account/statistics screenshots.
+('00000000-0000-0000-0000-000000000012', '30000000-0000-0000-0000-000000000101', NOW() - INTERVAL '2 hours', 1, 2.30, 1, 2, 1, NOW() - INTERVAL '1 day', 'flashcard'),
+('00000000-0000-0000-0000-000000000012', '30000000-0000-0000-0000-000000000102', NOW() - INTERVAL '1 hour', 2, 2.50, 2, 4, 0, NOW() - INTERVAL '2 days', 'fill_blank'),
+('00000000-0000-0000-0000-000000000012', '30000000-0000-0000-0000-000000000103', CURRENT_DATE + INTERVAL '1 day' + INTERVAL '11 hours', 1, 2.40, 1, 3, 0, NOW() - INTERVAL '1 day', 'flashcard'),
+('00000000-0000-0000-0000-000000000012', '30000000-0000-0000-0000-000000000104', NOW() - INTERVAL '20 minutes', 3, 2.60, 3, 6, 1, NOW() - INTERVAL '3 days', 'fill_blank')
+ON CONFLICT (user_id, word_id) DO UPDATE SET
+    next_review_date = EXCLUDED.next_review_date,
+    interval_days = EXCLUDED.interval_days,
+    ease_factor = EXCLUDED.ease_factor,
+    repetitions = EXCLUDED.repetitions,
+    correct_count = EXCLUDED.correct_count,
+    incorrect_count = EXCLUDED.incorrect_count,
+    last_reviewed_at = EXCLUDED.last_reviewed_at,
+    review_context = EXCLUDED.review_context,
+    updated_at = NOW();
+
+INSERT INTO revision_sessions (id, user_id, vocab_list_id, session_type, status, started_at, completed_at, score, total_words, correct_answers, word_ids) VALUES
+('60000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000011', '20000000-0000-0000-0000-000000000006', 'flashcard', 'completed', NOW() - INTERVAL '1 day' - INTERVAL '35 minutes', NOW() - INTERVAL '1 day' - INTERVAL '18 minutes', 92, 5, 5, '["30000000-0000-0000-0000-000000000091", "30000000-0000-0000-0000-000000000092", "30000000-0000-0000-0000-000000000093", "30000000-0000-0000-0000-000000000094", "30000000-0000-0000-0000-000000000095"]'::jsonb),
+('60000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000011', '20000000-0000-0000-0000-000000000001', 'fill_blank', 'completed', NOW() - INTERVAL '3 days' - INTERVAL '40 minutes', NOW() - INTERVAL '3 days' - INTERVAL '15 minutes', 86, 5, 4, '["30000000-0000-0000-0000-000000000001", "30000000-0000-0000-0000-000000000002", "30000000-0000-0000-0000-000000000003", "30000000-0000-0000-0000-000000000004", "30000000-0000-0000-0000-000000000005"]'::jsonb),
+('60000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-000000000011', '20000000-0000-0000-0000-000000000002', 'flashcard', 'completed', NOW() - INTERVAL '7 days' - INTERVAL '25 minutes', NOW() - INTERVAL '7 days' - INTERVAL '8 minutes', 88, 4, 4, '["30000000-0000-0000-0000-000000000021", "30000000-0000-0000-0000-000000000022", "30000000-0000-0000-0000-000000000023", "30000000-0000-0000-0000-000000000024"]'::jsonb),
+('60000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000012', '20000000-0000-0000-0000-000000000007', 'fill_blank', 'completed', NOW() - INTERVAL '2 days' - INTERVAL '30 minutes', NOW() - INTERVAL '2 days' - INTERVAL '12 minutes', 90, 4, 4, '["30000000-0000-0000-0000-000000000101", "30000000-0000-0000-0000-000000000102", "30000000-0000-0000-0000-000000000103", "30000000-0000-0000-0000-000000000104"]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+    started_at = EXCLUDED.started_at,
+    completed_at = EXCLUDED.completed_at,
+    score = EXCLUDED.score,
+    total_words = EXCLUDED.total_words,
+    correct_answers = EXCLUDED.correct_answers,
+    status = EXCLUDED.status,
+    word_ids = EXCLUDED.word_ids;
+
+UPDATE revision_sessions
+SET
+    started_at = CASE id
+        WHEN '60000000-0000-0000-0000-000000000001' THEN NOW() - INTERVAL '14 days' - INTERVAL '30 minutes'
+        WHEN '60000000-0000-0000-0000-000000000002' THEN NOW() - INTERVAL '10 days' - INTERVAL '35 minutes'
+        WHEN '60000000-0000-0000-0000-000000000003' THEN NOW() - INTERVAL '5 days' - INTERVAL '40 minutes'
+        WHEN '60000000-0000-0000-0000-000000000004' THEN NOW() - INTERVAL '9 minutes'
+        ELSE started_at
+    END,
+    completed_at = CASE id
+        WHEN '60000000-0000-0000-0000-000000000001' THEN NOW() - INTERVAL '14 days' - INTERVAL '12 minutes'
+        WHEN '60000000-0000-0000-0000-000000000002' THEN NOW() - INTERVAL '10 days' - INTERVAL '16 minutes'
+        WHEN '60000000-0000-0000-0000-000000000003' THEN NOW() - INTERVAL '5 days' - INTERVAL '18 minutes'
+        ELSE completed_at
+    END
+WHERE id IN (
+    '60000000-0000-0000-0000-000000000001',
+    '60000000-0000-0000-0000-000000000002',
+    '60000000-0000-0000-0000-000000000003',
+    '60000000-0000-0000-0000-000000000004'
+);
+
+INSERT INTO monthly_user_stats (user_id, month_start_date, cumulative_words_mastered) VALUES
+('00000000-0000-0000-0000-000000000011', date_trunc('month', CURRENT_DATE - INTERVAL '5 months')::date, 18),
+('00000000-0000-0000-0000-000000000011', date_trunc('month', CURRENT_DATE - INTERVAL '4 months')::date, 36),
+('00000000-0000-0000-0000-000000000011', date_trunc('month', CURRENT_DATE - INTERVAL '3 months')::date, 58),
+('00000000-0000-0000-0000-000000000011', date_trunc('month', CURRENT_DATE - INTERVAL '2 months')::date, 83),
+('00000000-0000-0000-0000-000000000011', date_trunc('month', CURRENT_DATE - INTERVAL '1 month')::date, 107),
+('00000000-0000-0000-0000-000000000011', date_trunc('month', CURRENT_DATE)::date, 128),
+('00000000-0000-0000-0000-000000000012', date_trunc('month', CURRENT_DATE - INTERVAL '4 months')::date, 22),
+('00000000-0000-0000-0000-000000000012', date_trunc('month', CURRENT_DATE - INTERVAL '3 months')::date, 41),
+('00000000-0000-0000-0000-000000000012', date_trunc('month', CURRENT_DATE - INTERVAL '2 months')::date, 69),
+('00000000-0000-0000-0000-000000000012', date_trunc('month', CURRENT_DATE - INTERVAL '1 month')::date, 88),
+('00000000-0000-0000-0000-000000000012', date_trunc('month', CURRENT_DATE)::date, 102)
+ON CONFLICT (user_id, month_start_date) DO UPDATE SET
+    cumulative_words_mastered = EXCLUDED.cumulative_words_mastered,
+    updated_at = NOW();
+
+UPDATE assignments
+SET
+    start_date = CASE id
+        WHEN '50000000-0000-0000-0000-000000000001' THEN CURRENT_DATE - INTERVAL '4 days'
+        WHEN '50000000-0000-0000-0000-000000000002' THEN CURRENT_DATE - INTERVAL '2 days'
+        WHEN '50000000-0000-0000-0000-000000000003' THEN CURRENT_DATE - INTERVAL '1 day'
+        WHEN '50000000-0000-0000-0000-000000000004' THEN CURRENT_DATE - INTERVAL '12 days'
+        WHEN '50000000-0000-0000-0000-000000000005' THEN CURRENT_DATE + INTERVAL '3 days'
+        ELSE start_date
+    END,
+    due_date = CASE id
+        WHEN '50000000-0000-0000-0000-000000000001' THEN CURRENT_DATE + INTERVAL '3 days' + INTERVAL '23 hours'
+        WHEN '50000000-0000-0000-0000-000000000002' THEN CURRENT_DATE + INTERVAL '5 days' + INTERVAL '23 hours'
+        WHEN '50000000-0000-0000-0000-000000000003' THEN CURRENT_DATE + INTERVAL '7 days' + INTERVAL '23 hours'
+        WHEN '50000000-0000-0000-0000-000000000004' THEN CURRENT_DATE - INTERVAL '3 days'
+        WHEN '50000000-0000-0000-0000-000000000005' THEN CURRENT_DATE + INTERVAL '10 days' + INTERVAL '23 hours'
+        ELSE due_date
+    END,
+    updated_at = NOW();
+
+UPDATE learner_assignments
+SET completed_at = CASE
+    WHEN status = 'completed' THEN NOW() - INTERVAL '2 days'
+    ELSE completed_at
+END;
+
+UPDATE notifications
+SET created_at = CASE id
+    WHEN '80000000-0000-0000-0000-000000000001' THEN NOW() - INTERVAL '5 hours'
+    WHEN '80000000-0000-0000-0000-000000000002' THEN NOW() - INTERVAL '3 hours'
+    WHEN '80000000-0000-0000-0000-000000000003' THEN NOW() - INTERVAL '2 days'
+    WHEN '80000000-0000-0000-0000-000000000004' THEN NOW() - INTERVAL '6 hours'
+    WHEN '80000000-0000-0000-0000-000000000005' THEN NOW() - INTERVAL '30 minutes'
+    ELSE created_at
+END;
+
+UPDATE reports
+SET created_at = CASE id
+    WHEN 'A0000000-0000-0000-0000-000000000001' THEN NOW() - INTERVAL '2 hours'
+    WHEN 'A0000000-0000-0000-0000-000000000002' THEN NOW() - INTERVAL '2 days'
+    WHEN 'A0000000-0000-0000-0000-000000000003' THEN NOW() - INTERVAL '7 hours'
+    ELSE created_at
+END;
+
+-- =================================================================
 -- UPDATE STATISTICS AND FINAL CLEANUP
 -- =================================================================
 
@@ -602,6 +863,32 @@ UPDATE user_stats SET
         FROM user_word_progress uwp 
         WHERE uwp.user_id = user_stats.user_id
     );
+
+-- Give the demo statistics page strong headline numbers after the raw counters
+-- are reconciled from progress rows.
+UPDATE user_stats
+SET
+    total_vocabulary = 128,
+    total_reviews = 420,
+    correct_reviews = 365,
+    current_streak = 14,
+    longest_streak = 28,
+    last_review_date = CURRENT_DATE,
+    total_study_time = 1840,
+    updated_at = NOW()
+WHERE user_id = '00000000-0000-0000-0000-000000000011';
+
+UPDATE user_stats
+SET
+    total_vocabulary = 102,
+    total_reviews = 318,
+    correct_reviews = 274,
+    current_streak = 9,
+    longest_streak = 17,
+    last_review_date = CURRENT_DATE,
+    total_study_time = 1265,
+    updated_at = NOW()
+WHERE user_id = '00000000-0000-0000-0000-000000000012';
 
 -- Insert final migration record
 INSERT INTO schema_migrations (version, description) 
@@ -639,6 +926,7 @@ COMMIT;
 -- Assignments: 5 total (past, current, and future)
 -- User Progress: Realistic spaced repetition data
 -- Sessions: Active and completed learning sessions
+-- Demo freshness: dynamic due reviews, recent history, popular counts, monthly statistics
 -- Notifications: Various types of system notifications
 -- Achievements: User accomplishments and milestones
 -- Reports: Sample content reports for moderation
@@ -650,6 +938,7 @@ COMMIT;
 -- - Teacher 2: teacher2@vocaboost.com (Mr. David Chen)
 -- - Student 1: student1@email.com (Alex Nguyen)
 -- - Student 2: student2@email.com (Maria Rodriguez)
+-- - Student 5: student5@email.com (Michael Brown, suspended account demo)
 -- - etc.
 --
 -- =================================================================

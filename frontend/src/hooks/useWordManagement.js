@@ -18,6 +18,11 @@ export const useWordManagement = () => {
 
   const normalizeSynonyms = useCallback((input) => {
     if (!input) return [];
+    if (Array.isArray(input)) {
+      return input
+        .map((s) => (typeof s === "string" ? s.trim() : ""))
+        .filter((s) => s !== "");
+    }
     if (typeof input === "string") {
       return input
         .split(",")
@@ -88,29 +93,43 @@ export const useWordManagement = () => {
       setLoadingAI((prev) => new Set(prev).add(index));
 
       try {
-        console.log('=== Frontend generateMissingFields (New Word) ===');
-        console.log('Latest word data:', word);
+        console.log("=== Frontend generateMissingFields (New Word) ===");
+        console.log("Latest word data:", word);
 
         // Helper function to check if field is truly empty (null, undefined, empty string, or only spaces)
         const isFieldEmpty = (value) => {
           if (!value) return true;
-          if (typeof value === 'string') return value.trim() === '';
-          if (Array.isArray(value)) return value.length === 0 || value.every(item => !item || item.trim() === '');
+          if (typeof value === "string") return value.trim() === "";
+          if (Array.isArray(value)) {
+            return (
+              value.length === 0 ||
+              value.every((item) => !item || item.trim() === "")
+            );
+          }
           return false;
         };
 
         // Prepare current data for the word with proper empty checking - treat empty/space-only as truly empty
         const currentData = {
-          pronunciation: isFieldEmpty(word.phonetics) ? '' : word.phonetics.trim(),
-          synonyms: isFieldEmpty(word.synonyms) ? [] : 
-            (Array.isArray(word.synonyms) 
-              ? word.synonyms.filter(s => s && s.trim() !== '').map(s => s.trim())
-              : (typeof word.synonyms === 'string' && word.synonyms.trim() !== '')
-                ? word.synonyms.split(',').map(s => s.trim()).filter(s => s !== '')
-                : []
-            ),
-          example: isFieldEmpty(word.exampleSentence) ? '' : word.exampleSentence.trim(),
-          translation: isFieldEmpty(word.translation) ? '' : word.translation.trim(),
+          phonetics: isFieldEmpty(word.phonetics) ? "" : word.phonetics.trim(),
+          synonyms: isFieldEmpty(word.synonyms)
+            ? []
+            : Array.isArray(word.synonyms)
+              ? word.synonyms
+                  .filter((s) => s && s.trim() !== "")
+                  .map((s) => s.trim())
+              : typeof word.synonyms === "string" && word.synonyms.trim() !== ""
+                ? word.synonyms
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter((s) => s !== "")
+                : [],
+          exampleSentence: isFieldEmpty(word.exampleSentence)
+            ? ""
+            : word.exampleSentence.trim(),
+          translation: isFieldEmpty(word.translation)
+            ? ""
+            : word.translation.trim(),
         };
 
         console.log("Current data being sent:", currentData);
@@ -122,30 +141,43 @@ export const useWordManagement = () => {
         });
 
         if (response?.data?.result?.generatedFields) {
-          console.log("Generated fields received:", response.data.result.generatedFields);
-          
+          console.log(
+            "Generated fields received:",
+            response.data.result.generatedFields
+          );
+
           const updatedWords = [...words];
           const generatedFields = response.data.result.generatedFields;
-          
-          console.log("Before update - word at index", index, ":", updatedWords[index]);
+
+          console.log(
+            "Before update - word at index",
+            index,
+            ":",
+            updatedWords[index]
+          );
           console.log("Fields to update:", generatedFields);
-          
+
           // Update only the fields that were generated - match backend field names exactly
           const updatedFields = {};
-          
-          if ('phonetics' in generatedFields && generatedFields.phonetics) {
+
+          if ("phonetics" in generatedFields && generatedFields.phonetics) {
             updatedFields.phonetics = generatedFields.phonetics;
           }
-          
-          if ('synonyms' in generatedFields && generatedFields.synonyms) {
-            updatedFields.synonyms = generatedFields.synonyms;
+
+          if ("synonyms" in generatedFields && generatedFields.synonyms) {
+            updatedFields.synonyms = Array.isArray(generatedFields.synonyms)
+              ? generatedFields.synonyms.join(", ")
+              : generatedFields.synonyms;
           }
-          
-          if ('translation' in generatedFields && generatedFields.translation) {
+
+          if ("translation" in generatedFields && generatedFields.translation) {
             updatedFields.translation = generatedFields.translation;
           }
-          
-          if ('exampleSentence' in generatedFields && generatedFields.exampleSentence) {
+
+          if (
+            "exampleSentence" in generatedFields &&
+            generatedFields.exampleSentence
+          ) {
             updatedFields.exampleSentence = generatedFields.exampleSentence;
           }
 
@@ -157,12 +189,20 @@ export const useWordManagement = () => {
             aiGenerated: response.data.result.aiGenerated,
             generationPrompt: response.data.result.generationPrompt,
           };
-          
-          console.log("After update - word at index", index, ":", updatedWords[index]);
+
+          console.log(
+            "After update - word at index",
+            index,
+            ":",
+            updatedWords[index]
+          );
           setWords(updatedWords);
           toast("Missing fields generated successfully!", "success");
         } else {
-          toast("Failed to generate missing fields. Please try again.", "error");
+          toast(
+            "Failed to generate missing fields. Please try again.",
+            "error"
+          );
         }
       } catch (error) {
         console.error("Error generating missing fields:", error);
